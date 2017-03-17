@@ -1,3 +1,5 @@
 # exclude .pyc, ~ files
 *.pyc
 *~
+# ignore virtual env
+gim_venv/
