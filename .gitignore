@@ -2,4 +2,4 @@
 *.pyc
 *~
 # ignore virtual env
-gim_venv/
+*env/
