@@ -28,5 +28,4 @@ class Users(Resource):
         if '/' in request.query_string:
             abort(400)
         return request.query_string
-
     

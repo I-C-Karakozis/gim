@@ -28,3 +28,4 @@ class Videos(Resource):
         if request.query_string:
             abort(400)
         return 'post successful'
+
