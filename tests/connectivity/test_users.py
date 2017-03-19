@@ -3,7 +3,7 @@ from tests import http_helpers as http
 
 class TestUsersConnectivity(GimTestCase.GimTestCase):
     
-    def test_get(self):
+    def test_get_all(self):
         assert http.response(self.client.get, '/api/Users').status_code != http.NOT_FOUND
 
     def test_get(self):

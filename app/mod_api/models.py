@@ -25,7 +25,7 @@ class User(db.Model):
 
     def encode_auth_token(self):
         now = datetime.datetime.now()
-        delta = datetime.timedelta(days=0, seconds=50000) # TODO: change
+        delta = datetime.timedelta(seconds=100000) # TODO: change
         payload = {
             'exp': now + delta,
             'iat': now,

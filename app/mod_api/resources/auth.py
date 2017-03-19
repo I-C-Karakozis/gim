@@ -1,8 +1,30 @@
 from flask import request, make_response, jsonify
 from flask_restful import Resource
 
-from app import db, flask_bcrypt
+from app import app, db, flask_bcrypt
 from app.mod_api import models
+
+def require_auth_token(func):
+    def fail_without_auth(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        auth_token = auth_header.split(" ")[1] if auth_header else ''
+        if auth_token:
+            u_id = models.User.decode_auth_token(auth_token)
+            if not isinstance(u_id, str):
+                return func(*args, **kwargs)
+            else:
+                response = {
+                    'status': 'failed',
+                    'message': u_id
+                    }
+                return make_response(jsonify(response), 401)
+        else:
+            response = {
+                'status': 'failed',
+                'message': 'Provide a valid auth token.'
+                }
+            return make_response(jsonify(response), 401)
+    return fail_without_auth
 
 class Register(Resource):
     def post(self):
@@ -22,7 +44,10 @@ class Register(Resource):
                 response = {
                     'status': 'success',
                     'message': 'Successfully registered.',
-                    'auth_token': auth_token.decode()
+                    'auth_token': auth_token.decode(),
+                    'data': {
+                        'user_id': user.u_id
+                        }
                     }
 
                 return make_response(jsonify(response), 201)
@@ -50,7 +75,10 @@ class Login(Resource):
                     response = {
                         'status': 'success',
                         'message': 'Succesfully logged in.',
-                        'auth_token': auth_token.decode()
+                        'auth_token': auth_token.decode(),
+                        'data': {
+                            'user_id': user.u_id
+                            }
                         }
                     return make_response(jsonify(response), 200)
             else:
@@ -78,8 +106,7 @@ class Status(Resource):
                 response = {
                     'status': 'success',
                     'data': {
-                        'user_id': user.u_id,
-                        'score': 0 # TODO: calculate this
+                        'user_id': user.u_id
                         }
                     }
                 return make_response(jsonify(response), 200)

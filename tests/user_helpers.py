@@ -13,10 +13,13 @@ def post(client, url, **kwargs):
         content_type='application/json'
         )
 
+def get_user(client, u_id, auth):
+    return get(client, '/api/Users/%d' % u_id, Authorization=auth)
+
 def logout_user(client, auth):
     return get(client, '/api/Auth/Logout', Authorization=auth)
 
-def get_user(client, auth):
+def get_user_status(client, auth):
     return get(client, '/api/Auth/Status', Authorization=auth)
 
 def register_user(client, email, password):
