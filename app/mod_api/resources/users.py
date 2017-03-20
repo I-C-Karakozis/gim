@@ -15,7 +15,7 @@ class User(Resource):
         args = parser.parse_args()
         if request.query_string:
             abort(400)
-        output = 'patch successful ' + user_id
+        output = 'patch successful ' + str(user_id)
         return output
 
     @auth.require_auth_token

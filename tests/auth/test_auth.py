@@ -39,7 +39,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
                                          password=''
                                          )
             data = json.loads(response.data.decode())
-            assert data['status'] == 'fail'
+            assert data['status'] == 'failed'
             assert response.content_type == 'application/json'
             assert response.status_code == http.ACCEPTED
 

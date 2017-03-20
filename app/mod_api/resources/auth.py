@@ -27,7 +27,30 @@ def require_auth_token(func):
     return fail_without_auth
 
 class Register(Resource):
+    """ The Register endpoint is for creating a new user.
+
+    This endpoint supports the following http requests:
+    post -- register a new user
+    """
+
     def post(self):
+        """ Given an email and password, creates a user and returns their authentication credentials.
+
+        Request: POST /Register
+        {
+            'email': 'host@domain.com',
+            'password': 'password'
+        }
+
+        Response: HTTP 200 OK
+        {
+            'status': 'success',
+            'auth_token': 'auth_token'
+            'data': {
+                'user_id': 5
+            }
+        }
+        """
         post_data = request.get_json()
         user = models.User.query.filter_by(email=post_data.get('email')).first()
         if not user:
@@ -53,19 +76,42 @@ class Register(Resource):
                 return make_response(jsonify(response), 201)
             except Exception as e:
                 response = {
-                    'status': 'fail',
+                    'status': 'failed',
                     'message': 'Some error occured. Please try again'
                     }
                 return make_response(jsonify(response), 401)
         else:
             response = {
-                'status': 'fail',
+                'status': 'failed',
                 'message': 'User already exists. Please log in.'
                 }
             return make_response(jsonify(response), 202)
 
 class Login(Resource):
+    """The Login endpoint is for logging in a user.
+
+    This endpoint supports the following requests:
+    post -- login an existing user
+    """
+
     def post(self):
+        """Given an email and a password, verifies the credentials and returns authentication credentials.
+
+        Request: POST /Login
+        {
+            'email': 'host@domain.com',
+            'password': 'password'
+        }
+
+        Response: HTTP 200 OK
+        {
+            'status': 'success',
+            'auth_token': 'auth_token',
+            'data': {
+                'user_id': 5
+            }
+        }
+        """
         post_data = request.get_json()
         try:
             user = models.User.query.filter_by(email=post_data.get('email')).first()
@@ -96,7 +142,26 @@ class Login(Resource):
             return make_response(jsonify(response), 500)
 
 class Status(Resource):
+    """The Status endpoint is for obtaining a user's id and validating their authentication token.
+
+    The Status endpoint supports the following http requests:
+    get -- obtain the id of a user; authentication token required
+    """
+
     def get(self):
+        """Returns the id of the user corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
+
+        Request: GET /Status
+                 Authorizaton: Bearer auth_token
+
+        Response: HTTP 200 OK
+        {
+            'status': 'success',
+            'data': {
+                'user_id': 5
+            }
+        }
+        """
         auth_header = request.headers.get('Authorization')
         auth_token = auth_header.split(" ")[1] if auth_header else ''
         if auth_token:
@@ -124,7 +189,23 @@ class Status(Resource):
             return make_response(jsonify(response), 401)
                 
 class Logout(Resource):
+    """The Logout endpoint is for logging a user out.
+
+    This endpoint supports the following http requests:
+    get -- log a user out; authentication token required
+    """
+
     def get(self):
+        """Log out the user who corresponds to the authentication token found in the Authorizaton field. Error if the token is invalid
+
+        Request: GET /Logout
+                 Authorization: Bearer auth_token
+
+        Response: HTTP 200 OK
+        {
+            'status': 'success'
+        }
+        """
         auth_header = request.headers.get('Authorization')
         auth_token = auth_header.split(" ")[1] if auth_header else ''
         if auth_token:
