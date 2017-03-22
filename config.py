@@ -26,3 +26,6 @@ CSRF_SESSION_KEY = "secret"
 
 # Secret key for signing cookies
 SECRET_KEY = "secret"
+
+# Bycrpt cryptographic parameters
+BCRYPT_LOG_ROUNDS = 7
