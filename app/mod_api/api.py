@@ -8,11 +8,13 @@ from app import db
 mod_api = Blueprint('api', __name__, url_prefix='/api')
 api_v1 = Api(mod_api)
 
+# videos routes
 api_v1.add_resource(videos.Videos, '/Videos')
 api_v1.add_resource(videos.Video, '/Videos/<int:video_id>')
 
+# user routes
 api_v1.add_resource(users.Users, '/Users')
-api_v1.add_resource(users.User, '/Users/<int:user_id>')
+api_v1.add_resource(users.User, '/User/<int:user_id>')
 
 # authentication routes
 api_v1.add_resource(auth.Register, '/Auth/Register')

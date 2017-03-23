@@ -3,7 +3,7 @@ from tests import http_helpers as http
 
 class TestVideosConnectivity(GimTestCase.GimTestCase):
     
-    def test_get(self):
+    def test_get_all(self):
         assert http.response(self.client.get, '/api/Videos').status_code != http.NOT_FOUND
 
     def test_post(self):
@@ -16,7 +16,7 @@ class TestVideosConnectivity(GimTestCase.GimTestCase):
 
     def test_patch(self):
         data = dict(video=5000)
-        assert http.response(self.client.post, '/api/Videos/5', data=data).status_code != http.NOT_FOUND
+        assert http.response(self.client.patch, '/api/Videos/5', data=data).status_code != http.NOT_FOUND
 
     def test_delete(self):
-        assert http.response(self.client.post, '/api/Videos/5').status_code != http.NOT_FOUND
+        assert http.response(self.client.delete, '/api/Videos/5').status_code != http.NOT_FOUND
