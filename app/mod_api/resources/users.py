@@ -30,7 +30,7 @@ class User(Resource):
     """
 
     @auth.require_auth_token
-    def patch(self, http_u_id): 
+    def patch(self, user_id): 
         """Given correct current password and a new password, it updates the password of the user with the id corresponding to the authentication token presented in the Authorizaton header to the new password. If the token is invalid, returns an error.
 
         Request: PATCH /Users/5
@@ -58,14 +58,14 @@ class User(Resource):
         if auth_token:
             token_u_id = models.User.decode_auth_token(auth_token) 
             if not isinstance(token_u_id, str): 
-                if (token_u_id != http_u_id):
+                if (token_u_id != user_id):
                     response = {
                         'status': 'failed',
                         'message': "Unauthorized access: You are not allowed to patch that user's information."
                         } 
                     return make_response(jsonify(response), 401)
 
-                user = models.User.query.get_or_404(http_u_id) 
+                user = models.User.query.get_or_404(user_id) 
                 post_data = request.get_json()           
 
                 if post_data.has_key('password') & post_data.has_key('new_password'):
@@ -86,7 +86,7 @@ class User(Resource):
                     response = {
                     'status': 'success',
                     'data': {
-                        'user_id': http_u_id ,
+                        'user_id': user_id ,
                         }
                     }
                     return make_response(jsonify(response), 200)
@@ -100,7 +100,7 @@ class User(Resource):
             else:
                 response = {
                     'status': 'failed',
-                    'message': http_u_id
+                    'message': user_id
                     }
                 return make_response(jsonify(response), 401)
         else:
@@ -111,7 +111,7 @@ class User(Resource):
             return make_response(jsonify(response), 401)
 
     @auth.require_auth_token
-    def get(self, http_u_id):
+    def get(self, user_id):
         """Returns all information of the user with the id corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
         
         Request: GET /Users
@@ -120,7 +120,7 @@ class User(Resource):
         {
             'status': 'success',
             'data': {
-                'user_id': http_u_id ,
+                'user_id': user_id ,
                 'email': user.email ,
                 'registered_on': user.registered_on
                 'last_active_on': user.last_active_on
@@ -138,21 +138,21 @@ class User(Resource):
         if auth_token:
             token_u_id = models.User.decode_auth_token(auth_token) 
             if not isinstance(token_u_id, str): 
-                if (token_u_id != http_u_id):
+                if (token_u_id != user_id):
                     response = {
                         'status': 'failed',
                         'message': "Unauthorized access: You are not allowed to patch that user's information."
                         } 
                     return make_response(jsonify(response), 401)
 
-                user = models.User.query.get_or_404(http_u_id)
+                user = models.User.query.get_or_404(user_id)
                 user.last_active_on = now
                 db.session.commit()
 
                 response = {
                     'status': 'success',
                     'data': {
-                        'user_id': http_u_id ,
+                        'user_id': user_id ,
                         'email': user.email ,
                         'registered_on': user.registered_on ,
                         'last_active_on': user.last_active_on
@@ -162,7 +162,7 @@ class User(Resource):
             else:
                 response = {
                     'status': 'failed',
-                    'message': http_u_id
+                    'message': user_id
                     }
                 return make_response(jsonify(response), 401)
         else:
@@ -173,7 +173,7 @@ class User(Resource):
             return make_response(jsonify(response), 401)
 
     @auth.require_auth_token
-    def delete(self, http_u_id):
+    def delete(self, user_id):
         """Deletes user with the id corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
         
         Request: DELETE /Users
@@ -185,7 +185,7 @@ class User(Resource):
         {
             'status': 'success',
             'data': {
-                'user_id': http_u_id ,
+                'user_id': user_id ,
                 }
         }
         Returns 404 if no user with the given id was found.
@@ -200,14 +200,14 @@ class User(Resource):
         if auth_token:
             token_u_id = models.User.decode_auth_token(auth_token) 
             if not isinstance(token_u_id, str): 
-                if (token_u_id != http_u_id):
+                if (token_u_id != user_id):
                     response = {
                         'status': 'failed',
                         'message': "Unauthorized access: You are not allowed to patch that user's information."
                         } 
                     return make_response(jsonify(response), 401)
 
-                user = models.User.query.get_or_404(http_u_id)
+                user = models.User.query.get_or_404(user_id)
                 user.last_active_on = now
                 post_data = request.get_json()           
 
@@ -227,7 +227,7 @@ class User(Resource):
                     response = {
                         'status': 'success',
                         'data': {
-                            'user_id': http_u_id ,
+                            'user_id': user_id ,
                             }
                         }
                     return make_response(jsonify(response), 200)
@@ -240,7 +240,7 @@ class User(Resource):
             else:
                 response = {
                     'status': 'failed',
-                    'message': http_u_id
+                    'message': user_id
                     }
                 return make_response(jsonify(response), 401)
         else:
