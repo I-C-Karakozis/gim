@@ -6,7 +6,6 @@ from app import app, db, flask_bcrypt
 from app.mod_api import models
 from app.mod_api.resources import auth
 
-now = datetime.datetime.now()
 parser = reqparse.RequestParser()
 
 class Users(Resource):
@@ -19,7 +18,7 @@ class Users(Resource):
         return make_response(jsonify(response), 301)
 
 class User(Resource):
-    """The Users endpoint is for deleting a user and patchin and getting the information of a user.
+    """The Users endpoint is for deleting a user and patching and getting the information of a user.
 
     This endpoint supports the following http requests:
     patch -- updates the password of the user; authentication token required
@@ -80,6 +79,7 @@ class User(Resource):
                         return make_response(jsonify(response), 401)
 
                     user.password_hash = flask_bcrypt.generate_password_hash(passed_new_password, app.config.get('BCRYPT_LOG_ROUNDS')).decode()
+                    now = datetime.datetime.now()
                     user.last_active_on = now
                     db.session.commit()
 
@@ -146,6 +146,7 @@ class User(Resource):
                     return make_response(jsonify(response), 401)
 
                 user = models.User.query.get_or_404(user_id)
+                now = datetime.datetime.now()
                 user.last_active_on = now
                 db.session.commit()
 
@@ -208,6 +209,7 @@ class User(Resource):
                     return make_response(jsonify(response), 401)
 
                 user = models.User.query.get_or_404(user_id)
+                now = datetime.datetime.now()
                 user.last_active_on = now
                 post_data = request.get_json()           
 

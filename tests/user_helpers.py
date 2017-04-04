@@ -30,13 +30,13 @@ def delete(client, url, auth, **kwargs):
         )
 
 def patch_user(client, u_id, auth, **kwargs):
-    return patch(client, '/api/User/%d' % u_id, auth, **kwargs)
+    return patch(client, '/api/Users/%d' % u_id, auth, **kwargs)
 
 def delete_user(client, u_id, auth, **kwargs):
-    return delete(client, '/api/User/%d' % u_id, auth, **kwargs)
+    return delete(client, '/api/Users/%d' % u_id, auth, **kwargs)
 
 def get_user(client, u_id, auth):
-    return get(client, '/api/User/%d' % u_id, Authorization=auth)
+    return get(client, '/api/Users/%d' % u_id, Authorization=auth)
 
 def logout_user(client, auth):
     return get(client, '/api/Auth/Logout', Authorization=auth)
