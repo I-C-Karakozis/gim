@@ -5,3 +5,4 @@
 *env/
 # ignore app.db
 app.db
+migrations # TO DO: remove this before launch
