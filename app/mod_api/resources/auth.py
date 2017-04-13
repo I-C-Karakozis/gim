@@ -26,6 +26,21 @@ def require_auth_token(func):
             return make_response(jsonify(response), 401)
     return fail_without_auth
 
+def get_auth_token(auth_header):
+    return auth_header.split(" ")[1] if auth_header else ''
+
+def require_empty_query_string(func):
+    def fail_on_query_string(*args, **kwargs):
+        if request.query_string:
+            response = {
+                'status': 'failed',
+                'message': 'query string must be empty'
+                }
+            return make_response(jsonify(response), 400)
+        else:
+            return func(*args, **kwargs)
+    return fail_on_query_string
+
 class Register(Resource):
     """ The Register endpoint is for creating a new user.
 

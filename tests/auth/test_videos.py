@@ -22,7 +22,8 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.get_all_videos(self.client,
                                                  auth=auth
                                                  )
-            assert response.status_code != http.UNAUTH and response.status_code != http.NOT_FOUND
+            assert response.status_code != http.UNAUTH 
+            assert response.status_code != http.NOT_FOUND
 
     def test_post(self):
         # register a user
@@ -39,4 +40,5 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
         response = videos_api.post_video(self.client,
                                          auth=auth
                                          )
-        assert response.status_code != http.UNAUTH and response.status_code != http.NOT_FOUND
+        assert response.status_code != http.UNAUTH
+        assert response.status_code != http.NOT_FOUND
