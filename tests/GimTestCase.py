@@ -7,14 +7,9 @@ from app import app, db
 
 class GimTestCase(unittest.TestCase):
     def setUp(self):
-        self.db_fd, app.config['DATABASE'] = tempfile.mkstemp()
-        app.config['TESTING'] = True
+        app.config.from_object('config.TestingConfig')
         self.client = app.test_client()
         self.db = db
-        
-    def tearDown(self):
-        os.close(self.db_fd)
-        os.unlink(app.config['DATABASE'])
 
 class GimFreshDBTestCase(GimTestCase):
     def setUp(self):
