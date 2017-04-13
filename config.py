@@ -34,7 +34,7 @@ class Config(object):
 	BCRYPT_LOG_ROUNDS = 7
 
 class ProductionConfig(Config):
-    DATABASE_URI = 'mysql://yannis:gim-333@localhost/db'
+    SQLALCHEMY_DATABASE_URI = 'mysql://yannis:gim-333@localhost/db'
 
 class TestingConfig(Config):
     TESTING = True
