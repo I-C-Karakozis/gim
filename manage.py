@@ -10,6 +10,7 @@ from flask_migrate import Migrate, MigrateCommand
 
 from app import app, db
 from app.mod_api import models
+from config import *
 
 migrate = Migrate(app, db)
 
