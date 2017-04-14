@@ -1,10 +1,21 @@
-from flask import request, make_response, abort, jsonify, send_file
+from flask import request, make_response, jsonify, send_file
 from flask_restful import Resource, reqparse
 
 from app.mod_api import models
 from app.mod_api.resources import auth
+from app.mod_api.resources import json_utils
+from app.mod_api.resources import validators
 
-import json
+from werkzeug.datastructures import CombinedMultiDict
+
+def video_info(video):
+    return {
+        'video_id': video.v_id,
+        'uploaded_on': video.uploaded_on,
+        'tags': [t.name for t in video.tags],
+        'upvotes': len([vt for vt in video.votes if vt.upvote]),
+        'downvotes': len([vt for vt in video.votes if not vt.upvote]),
+        }
 
 class VideoFiles(Resource):
     """The VideoFiles endpoint is for retrieval of specific video files (see the Videos endpoint for metadata retrieval and manipulation).
@@ -18,8 +29,7 @@ class VideoFiles(Resource):
     @auth.require_auth_token
     @auth.require_empty_query_string
     def get(self, video_id):
-        """
-        Given a video id, return the file associated with it. The user must provide a valid authentication token.
+        """Given a video id, return the file associated with it. The user must provide a valid authentication token.
 
         Request: GET /VideoFiles/5
                  Authorization: Bearer auth_token
@@ -34,10 +44,7 @@ class VideoFiles(Resource):
             vfile = send_file(video.retrieve(), mimetype='text/plain')
             return make_response(vfile, 200)
         else:
-            response = {
-                'status': 'failed',
-                'message': 'Video does not exist',
-                }
+            response = json_utils.gen_response(success=False, msg='Video does not exist')
             return make_response(jsonify(response), 404)
 
 class Video(Resource):
@@ -75,28 +82,17 @@ class Video(Resource):
         u_id = models.User.decode_auth_token(auth_token)
         video = models.Video.get_video_by_id(video_id)
 
-        if video and video.u_id == u_id:
-            response = {
-                'status': 'success',
-                'data': {
-                    'video_id': video.v_id,
-                    'uploaded_on': video.uploaded_on,
-                    'tags': [t.name for t in video.tags],
-                    'upvotes': len([vt for vt in video.votes if vt.upvote]),
-                    'downvotes': len([vt for vt in video.votes if not vt.upvote]) 
-                    }
-                } 
+        if video:
+            response = json_utils.gen_response(data=video_info(video))
             return make_response(jsonify(response), 200)
         else:
-            response = {
-                'status': 'failed',
-                'message': 'Video does not exist',
-                }
+            response = json_utils.gen_response(success=False, msg='Video does not exist')
             return make_response(jsonify(response), 404)
 
     @auth.require_auth_token
     @auth.require_empty_query_string
     def patch(self, video_id):
+        # TODO: validate json input
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
 
@@ -106,15 +102,10 @@ class Video(Resource):
             if 'tags' in post_data:
                 video.add_tags(post_data['tags'])                
                 # TODO: voting
-            response = {
-                'status': 'success'
-                }
+            response = json_utils.gen_response(success=True)
             return make_response(jsonify(response), 200)    
         else:
-            response = {
-                'status': 'failed',
-                'message': 'you do not own a video with this id'
-                }
+            response = json_utils.gen_response(success=False, msg='you do not own a video with this id')
             return make_response(jsonify(response), 401)
 
     @auth.require_auth_token
@@ -126,15 +117,10 @@ class Video(Resource):
         video = models.Video.get_video_by_id(video_id)
         if video and video.u_id == u_id:
             video.delete()
-            response = {
-                'status': 'success',
-                }
+            response = json_utils.gen_response(success=True)
             return make_response(jsonify(response), 200)
         else:
-            response = {
-                'status': 'failed',
-                'message': 'you do not own a video with this id'
-                }
+            response = json_utils.gen_response(success=False, msg='you do not own a video with this id')
             return make_response(jsonify(response), 401)
 
 class Videos(Resource):
@@ -147,10 +133,9 @@ class Videos(Resource):
 
     @auth.require_auth_token
     def get(self):
-        """
-        Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
+        """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
 
-        Request: GET /Videos?lat=22.0&lon=67.8&tag=t1&tag=t2
+        Request: GET /Videos?lat=22.0&lon=67.8&tag=t1&tag=t2&sortBy=popular
                  Authorization: Bearer auth_token
         Response: HTTP 200 OK
         {
@@ -179,6 +164,7 @@ class Videos(Resource):
         parser.add_argument('tag', action='append')
         parser.add_argument('limit', type=int)
         parser.add_argument('offset', type=int)
+        parser.add_argument('sortBy', type=str)
         args = parser.parse_args()
         
         lat = args['lat']
@@ -186,35 +172,23 @@ class Videos(Resource):
         tags = args.get('tag', [])
         limit = args.get('limit', 5)
         offset = args.get('offset', 0)
+        sort_by = args.get('sortBy', 'popular')
 
-        videos = models.Video.search(lat, lon, tags, limit, offset)
-        response = {
-            'status': 'success',
-            'data': {
-                'videos': [
-                    {
-                        'video_id': v.v_id,
-                        'uploaded_on': v.uploaded_on,
-                        'tags': [t.name for t in v.tags],
-                        'upvotes': len([vt for vt in v.votes if vt.upvote]),
-                        'downvotes': len([vt for vt in v.votes if not vt.upvote])
-                        } 
-                    for v in videos]
-                }
-            }
+        videos = models.Video.search(lat, lon, tags, limit, offset, sort_by)
+        video_infos = [video_info(v) for v in videos]
+        response = json_utils.gen_response(data={'videos': video_infos})
         return make_response(jsonify(response), 200)
 
     @auth.require_auth_token
     @auth.require_empty_query_string
     def post(self):
-        """
-        Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
+        """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
 
         Request: POST /Videos
                  Authorization: Bearer auth_token
                  Content-type: multipart/form-data
         {
-            'file': video_file,
+            'file': <video_file, filename.mov>,
             'lat': 57.2,
             'lon': 39.4,
             'tags': ['soulja', 'boy', 'tell', 'em']
@@ -228,35 +202,23 @@ class Videos(Resource):
                 }
         }
         """
+        form = validators.VideoUploadForm(CombinedMultiDict((request.files, request.form)))
+        if not form.validate():
+            response = json_utils.gen_response(success=False, msg=form.errors)
+            return make_response(jsonify(response), 400)
+
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
         
-        if 'file' in request.files:
-            # TODO: some validation that this file is just a video file...
-            vfile = request.files.get('file')
-            post_data = request.form
-            if 'lat' in post_data and 'lon' in post_data:
-                tags = post_data.getlist('tags')
-                video = models.Video(vfile, u_id, post_data['lat'], post_data['lon'], tags)
-                video.commit(insert=True)
-                video.add_tags(tags)
-                response = {
-                    'status': 'success',
-                    'data': {
-                        'video_id': video.v_id
-                        }
-                    }
-                return make_response(jsonify(response), 200)
-            else:
-                response = {
-                    'status': 'failed',
-                    'message': 'lat and lon data missing'
-                    }
-                return make_response(jsonify(response), 400)
-        else:
-            response = {
-                'status': 'failed',
-                'message': 'no video file included, please attach video'
-                }
-            return make_response(jsonify(response), 400)
+        vfile = request.files.get('file')
+        post_data = request.form
+        lat = post_data.get('lat')
+        lon = post_data.get('lon')
+        tags = post_data.getlist('tags')
 
+        video = models.Video(vfile, u_id, lat, lon)
+        video.commit(insert=True)
+        video.add_tags(tags)
+
+        response = json_utils.gen_response(data={'video_id': video.v_id})
+        return make_response(jsonify(response), 200)

@@ -7,4 +7,4 @@
 app.db
 migrations # TODO: remove this before launch
 # ignore ftp videos store
-ftp/videos
+ftp/videos/*

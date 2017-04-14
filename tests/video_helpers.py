@@ -9,7 +9,7 @@ def get(client, url, auth):
 def post(client, url, auth, video, **kwargs):
     if video is not None:
         d = {k: v for k,v in kwargs.items()}
-        d.update({'file': (video, 'video.txt')})
+        d.update({'file': (video, 'video.mov')})
         return client.post(
             url,
             data=d,
@@ -50,7 +50,7 @@ def get_video(client, v_id, auth):
     return get(client, '/api/Videos/%d' % v_id, auth)
 
 def get_all_videos(client, auth, tags=[], **kwargs):
-    query_string = '&'.join(['%s=%s' % (k, v) for k,v in kwargs.items()]) + '&'.join(['tag=%s' % t for t in tags])
+    query_string = '&'.join(['%s=%s' % (k, v) for k,v in kwargs.items()]) + '&' + '&'.join(['tag=%s' % t for t in tags])
     return get(client, '/api/Videos?%s' % query_string, auth)
 
 def get_video_file(client, v_id, auth):

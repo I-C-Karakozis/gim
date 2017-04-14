@@ -99,7 +99,7 @@ class Video(db.Model):
     votes = db.relationship('Vote', backref='video', lazy='dynamic')
     filepath = db.Column(db.String(84), nullable=False)
 
-    def __init__(self, video, u_id, lat, lon, tags):
+    def __init__(self, video, u_id, lat, lon):
         self.u_id = u_id
         now = datetime.datetime.now()
         self.uploaded_on = now
@@ -133,10 +133,11 @@ class Video(db.Model):
         return Video.query.filter_by(v_id=_id).first()
 
     @staticmethod
-    def search(lat, lon, tags=[], limit=5, offset=0):
-        # TODO: filter by lat and lon eventually
+    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):
+        # TODO: filter by lat and lon
         # TODO: filter with an order on votes
-        return Video.query.all()
+        # TODO: filter by tags
+        return Video.query.all() #TODO
 
 class BlacklistToken(db.Model):
     t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)

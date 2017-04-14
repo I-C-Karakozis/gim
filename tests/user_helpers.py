@@ -50,3 +50,10 @@ def register_user(client, email, password):
 def login_user(client, email, password):
     return post(client, '/api/Auth/Login', email=email, password=password)
     
+def register_user_quick(client):
+    response = post(client, '/api/Auth/Register', email='goofy@goober.com', password='password')
+    data = json.loads(response.data.decode())
+    auth_token = data['auth_token']
+    auth = 'Bearer ' + auth_token
+    u_id = data['data']['user_id']
+    return auth, u_id

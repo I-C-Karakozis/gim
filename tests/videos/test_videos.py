@@ -13,22 +13,15 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             tags = ['this', 'is', 'testing']
 
             # register a user
-            response = users_api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = users_api.register_user_quick(self.client)
             
             # POST to Videos endpoint
             response = videos_api.post_video(self.client,
                                              auth=auth,
                                              video=StringIO.StringIO(contents),
+                                             tags=tags,
                                              lat=0.0,
                                              lon=0.0,
-                                             tags=tags
                                              )
 
             assert response.status_code == http.OK
@@ -57,6 +50,19 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert data['data']['downvotes'] == 0
             assert set(data['data']['tags']) == set(tags)
 
+    def test_get_nonexistent(self):
+        with self.client:
+            # register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # GET on Videos (non-existent id)
+            response = videos_api.get_video(self.client,
+                                            v_id=9001,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
     def test_get_all(self):
         with self.client:
             contents = ['one', 'day', 'we\'ll', 'old']
@@ -68,14 +74,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                 ]
 
             # register a user
-            response = users_api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = users_api.register_user_quick(self.client)
             
             # POST to Videos endpoint
             video_info = {}
@@ -83,9 +82,9 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                 response = videos_api.post_video(self.client,
                                                  auth=auth,
                                                  video=StringIO.StringIO(content),
+                                                 tags=ts,
                                                  lat=0.0,
-                                                 lon=0.0,
-                                                 tags=ts
+                                                 lon=0.0
                                                  )
                 assert response.status_code == http.OK
                 data = json.loads(response.data.decode())
@@ -96,6 +95,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             # GET on Videos endpoint
             response = videos_api.get_all_videos(self.client,
                                                  auth=auth,
+                                                 tags=['the'], # TODO: remove
                                                  lat=0.0,
                                                  lon=0.0
                                                  )
@@ -110,8 +110,41 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                 assert v_info['upvotes'] == 0
                 assert v_info['downvotes'] == 0
 
+    def test_get_all_by_popularity(self):
+        pass
+
+    def test_get_all_by_recent(self):
+        pass
+
+    def test_get_all_with_tags(self):
+        pass
+
+    def test_get_all_diff_geoloc(self):
+        pass
+
     def test_delete(self):
         pass
 
+    def test_delete_not_owner(self):
+        pass
+
+    def test_delete_non_existent(self):
+        pass
+
     def test_patch(self):
+        pass
+
+    def test_patch_not_owner(self):
+        pass
+
+    def test_patch_non_existent(self):
+        pass
+
+    def test_patch_no_data(self):
+        pass
+
+    def test_patch_double_upvote(self):
+        pass
+
+    def test_patch_upvote_downvote(self):
         pass
