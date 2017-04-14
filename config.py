@@ -10,7 +10,7 @@ class Config(object):
 
 	# Define the database - we are working with
 	# SQLite for this example
-	SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASE_DIR, 'app.db')
+	SQLALCHEMY_DATABASE_URI ='sqlite:///' + os.path.join(BASE_DIR, 'app.db')
 	DATABASE_CONNECT_OPTIONS = {}
 	SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -34,7 +34,7 @@ class Config(object):
 	BCRYPT_LOG_ROUNDS = 7
 
 class ProductionConfig(Config):
-    DATABASE_URI = 'mysql://yannis:gim-333@localhost/db'
-
+    SQLALCHEMY_DATABASE_URI ='mysql://yannis:gim-333@localhost/db'
+	
 class TestingConfig(Config):
     TESTING = True
