@@ -35,6 +35,6 @@ class Config(object):
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI ='mysql://yannis:gim-333@localhost/db'
-	
+
 class TestingConfig(Config):
     TESTING = True
