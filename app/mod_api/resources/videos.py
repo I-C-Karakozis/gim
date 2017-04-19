@@ -111,6 +111,12 @@ class Video(Resource):
     @auth.require_auth_token
     @auth.require_empty_query_string
     def delete(self, video_id):
+        """Deletes a video. Requesting user must own the video in order to delete it. If the auth token is invalid, returns an error.
+
+        Request: DELETE /Videos/5
+                 Authorization: Bearer auth_token
+        Response: HTTP 200 OK
+        """
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
         

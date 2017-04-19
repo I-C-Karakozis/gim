@@ -135,9 +135,19 @@ class Video(db.Model):
     @staticmethod
     def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):
         # TODO: filter by lat and lon
+        
+        # filter by tags
+        with_tags = Video.query.join(Tag, Video.tags).filter(Video.tags.any(Tag.name.in_(tags))) if tags else Video.query
+
         # TODO: filter with an order on votes
-        # TODO: filter by tags
-        return Video.query.all() #TODO
+        if sort_by == 'popular':
+            pass
+        elif sort_by == 'recent':
+            pass
+        else:
+            pass
+
+        return with_tags.all() # TODO
 
 class BlacklistToken(db.Model):
     t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
