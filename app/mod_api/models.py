@@ -57,12 +57,12 @@ class User(db.Model):
         return '<User %d>' % self.u_id
 
 tags = db.Table('tags',
-                db.Column('tag_id', db.Integer, db.ForeignKey('tag.t_id')),
+                db.Column('tag_id', db.Integer, db.ForeignKey('tag.tag_id')),
                 db.Column('video_id', db.Integer, db.ForeignKey('video.v_id'))
                 )
 
 class Tag(db.Model):
-    t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tag_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(20), nullable=False, unique=True)
 
     def __init__(self, name):

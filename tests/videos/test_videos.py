@@ -7,7 +7,7 @@ import json
 import StringIO
 
 class TestVideos(GimTestCase.GimFreshDBTestCase):
-    def test_get(self):
+    def test_post(self):
         with self.client:
             contents = "akfdhlkjghkjghdsglj"
             tags = ['this', 'is', 'testing']
@@ -25,6 +25,28 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                                              )
 
             assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            v_id = data['data']['video_id']
+
+            assert v_id > 0
+
+    def test_get(self):
+        with self.client:
+            contents = "akfdhlkjghkjghdsglj"
+            tags = ['this', 'is', 'testing']
+
+            # register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST to Videos endpoint
+            response = videos_api.post_video(self.client,
+                                             auth=auth,
+                                             video=StringIO.StringIO(contents),
+                                             tags=tags,
+                                             lat=0.0,
+                                             lon=0.0,
+                                             )
 
             data = json.loads(response.data.decode())
             v_id = data['data']['video_id']
@@ -86,7 +108,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                                                  lat=0.0,
                                                  lon=0.0
                                                  )
-                assert response.status_code == http.OK
+                
                 data = json.loads(response.data.decode())
                 video_info[data['data']['video_id']] = ts
 
@@ -140,7 +162,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                                                  lat=0.0,
                                                  lon=0.0
                                                  )
-                assert response.status_code == http.OK
+                
                 data = json.loads(response.data.decode())
                 video_info[data['data']['video_id']] = ts
 

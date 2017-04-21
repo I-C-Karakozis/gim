@@ -53,7 +53,7 @@ class Video(Resource):
     This endpoint supports the following http requests:
     get -- returns metadata about the video; authentication token required
     patch -- updates the tags of the video; authentication token required
-    delete -- delets the video; authentication token required
+    delete -- deletes the video; authentication token required
 
     All requests require the client to pass the video of the target video.
     """

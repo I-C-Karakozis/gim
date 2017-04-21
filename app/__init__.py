@@ -6,7 +6,7 @@ from flask_bcrypt import Bcrypt
 app = Flask(__name__)
 
 # Configurations
-app.config.from_object('config.ProductionConfig')
+app.config.from_object('config.TestingConfig')
 
 
 # Define the database object which is imported
