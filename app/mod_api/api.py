@@ -11,6 +11,7 @@ api_v1 = Api(mod_api)
 # videos routes
 api_v1.add_resource(videos.Videos, '/Videos')
 api_v1.add_resource(videos.Video, '/Videos/<int:video_id>')
+api_v1.add_resource(videos.VideoFiles, '/VideoFiles/<int:video_id>')
 
 # user routes
 api_v1.add_resource(users.Users, '/Users')
