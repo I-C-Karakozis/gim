@@ -15,6 +15,8 @@ def video_info(video):
         'tags': [t.name for t in video.tags],
         'upvotes': len([vt for vt in video.votes if vt.upvote]),
         'downvotes': len([vt for vt in video.votes if not vt.upvote]),
+        'lat': video.lat,
+        'lon': video.lon
         }
 
 class VideoFiles(Resource):
@@ -74,7 +76,9 @@ class Video(Resource):
                     'uploaded_on': 'Wed, 12 Apr 2017 21:14:57 GMT',
                     'tags': ['some', 'tags'],
                     'upvotes': 9001,
-                    'downvotes': 666
+                    'downvotes': 666,
+                    'lat': 60.97,
+                    'lon': 20.48
                 }
         }
         """
@@ -179,6 +183,11 @@ class Videos(Resource):
         limit = args.get('limit', 5)
         offset = args.get('offset', 0)
         sort_by = args.get('sortBy', 'popular')
+
+        # check for illegal query coordinates
+        if lat > 90 or lat < -90 or lon > 180 or lon < -180:
+            response = json_utils.gen_response(success=False, msg='Illegal coordinates entered')
+            return make_response(jsonify(response), 400)
 
         videos = models.Video.search(lat, lon, tags, limit, offset, sort_by)
         video_infos = [video_info(v) for v in videos]
