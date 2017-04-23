@@ -9,6 +9,7 @@ import math
 
 from app import app, db, flask_bcrypt
 from app import video_client
+from sqlalchemy import and_
 
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -135,13 +136,12 @@ class Video(db.Model):
 
     @staticmethod
     def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):
-        # filter by tags
-        with_tags = Video.query.join(Tag, Video.tags).filter(Video.tags.any(Tag.name.in_(tags))) if tags else Video.query
-
-        # filter by lat and lon
-        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
+        # filter by tags and geolocation
         # print  lat_max, lat_min, lon_max, lon_min
-        geolocated = [video for video in with_tags.all() if video.lat < lat_max and video.lat > lat_min and video.lon < lon_max and video.lon > lon_min]
+        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
+        geolocated_with_tags = Video.query.join(Tag, Video.tags).filter(and_(Video.tags.any(Tag.name.in_(tags)), Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)) if tags else Video.query.filter(and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min))
+
+        #geolocated = [video for video in with_tags.all() if video.lat < lat_max and video.lat > lat_min and video.lon < lon_max and video.lon > lon_min]
         #print geolocated
 
         # TODO: filter with an order on votes
@@ -152,7 +152,7 @@ class Video(db.Model):
         else:
             pass
 
-        return geolocated
+        return geolocated_with_tags.all()
 
     
 

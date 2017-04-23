@@ -191,27 +191,31 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             contents = ['one', 'day', 'we\'ll', 'hi']
             latitudes = [60.0, 9.0, 71.0, 60.01]
             longitudes = [20.0, 4.0, 80.0, 20.01]
+            tags = [
+                ['think', 'about'], 
+                ['the', 'stories'], 
+                ['that', 'we'], 
+                ['could', 'have', 'told', 'the']
+                ]
 
             # register a user
             auth, u_id = users_api.register_user_quick(self.client)
             
             # POST to Videos endpoint
-            video_infolat = {}
-            video_infolon = {}
-            for content, lat, lon in zip(contents, latitudes, longitudes):
+            video_info = {}
+            for content, ts, lat, lon in zip(contents, tags, latitudes, longitudes):
                 response = videos_api.post_video(self.client,
                                                  auth=auth,
                                                  video=StringIO.StringIO(content),
-                                                 lat=lat,
+                                                 tags=ts,
+                                                 lat=lat,                                                
                                                  lon=lon
                                                  )
                
                 data = json.loads(response.data.decode())
-                video_infolat[data['data']['video_id']] = lat
-                video_infolon[data['data']['video_id']] = lon
+                video_info[data['data']['video_id']] = ts
 
-            assert len(set(video_infolat.keys())) == len(contents)
-            assert len(set(video_infolon.keys())) == len(contents)
+            assert len(set(video_info.keys())) == len(contents)
             
             # GET on Videos endpoint with specific geolocations
             response = videos_api.get_all_videos(self.client,
@@ -225,8 +229,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert len(data['data']['videos']) == 2 # I can also reproduce the process of calculating lat_max and lat_min for more rigorous testing
                         
             for v_info in data['data']['videos']:
-                assert v_info['lat'] == video_infolat[v_info['video_id']]
-                assert v_info['lon'] == video_infolon[v_info['video_id']]
+                assert set(v_info['tags']) == set(video_info[v_info['video_id']])
                 assert v_info['upvotes'] == 0
                 assert v_info['downvotes'] == 0
 

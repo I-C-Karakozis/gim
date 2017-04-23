@@ -14,9 +14,7 @@ def video_info(video):
         'uploaded_on': video.uploaded_on,
         'tags': [t.name for t in video.tags],
         'upvotes': len([vt for vt in video.votes if vt.upvote]),
-        'downvotes': len([vt for vt in video.votes if not vt.upvote]),
-        'lat': video.lat,
-        'lon': video.lon
+        'downvotes': len([vt for vt in video.votes if not vt.upvote])
         }
 
 class VideoFiles(Resource):
@@ -76,9 +74,7 @@ class Video(Resource):
                     'uploaded_on': 'Wed, 12 Apr 2017 21:14:57 GMT',
                     'tags': ['some', 'tags'],
                     'upvotes': 9001,
-                    'downvotes': 666,
-                    'lat': 60.97,
-                    'lon': 20.48
+                    'downvotes': 666
                 }
         }
         """
