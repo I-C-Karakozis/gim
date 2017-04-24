@@ -113,33 +113,37 @@ class Video(Resource):
         }
         """
         schema = {
-            "upvote" : "boolean"
-        }
+            "type": "object",
+            "properties": {
+                "upvote": {"type": "boolean"}
+                },
+            "required": ["upvote"],
+            }
         post_data = request.get_json()
         try:
             validate(post_data, schema)
         except:
-            response = json_utils.gen_response(success=False, msg='Bad JSON: u_id and upvote required.')
+            response = json_utils.gen_response(success=False, msg='Bad JSON: upvote required.')
             return make_response(jsonify(response), 401)
 
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
 
         video = models.Video.get_video_by_id(video_id)
-        if video and video.u_id == u_id:
+        if video:
             old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()
             
             # repeat of existing vote
             if old_vote:
                 if old_vote.upvote == post_data['upvote']:
-                    response = json_utils.gen_response(success=False, msg='You cannot cast the same vote twice')
-                    return make_response(jsonify(response), 400)
+                    response = json_utils.gen_response(success=True, msg='You cannot cast the same vote twice')
+                    return make_response(jsonify(response), 304)
                 else:
-                    old_vote.upvote = not old_vote.upvote
+                    old_vote.upvote = post_data['upvote']
                     old_vote.commit()
             else:   
                 new_vote = models.Vote(u_id, video_id, post_data['upvote'])       
-                new_vote.commit(True)
+                new_vote.commit(insert = True)
 
             data = {
                 'video_id': video.v_id,

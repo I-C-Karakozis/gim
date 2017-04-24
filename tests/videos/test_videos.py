@@ -405,7 +405,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=True
                                                )
             assert response.status_code == http.OK
@@ -438,7 +437,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=False
                                                )
             assert response.status_code == http.OK
@@ -459,8 +457,32 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert data['data']['downvotes'] == 1
 
 
-    def test_patch_not_owner(self): # not sure what this is for in terms of voting; i think it is relevant only if we patch tags
-        pass
+    def test_patch_not_owner(self): 
+        with self.client:
+            # Register two users
+            auth1, u_id1 = users_api.register_user_quick(self.client,
+                                                         email='gim@gim.com'
+                                                         )
+            auth2, u_id2 = users_api.register_user_quick(self.client,
+                                                         email='gim2@gim.com'
+                                                         )
+
+            # POST a video with user 1
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth1
+                                               )
+
+            # vote video with user 2
+            response = videos_api.patch_video(self.client,
+                                       v_id,
+                                       auth=auth2,
+                                       upvote=False
+                                       )
+
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 1
 
     def test_patch_vote_non_existent_video(self):
         with self.client:
@@ -470,7 +492,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                        5,
                                        auth=auth,
-                                       u_id=u_id,
                                        upvote=False
                                        )
 
@@ -482,8 +503,13 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             # Register a user
             auth, u_id = users_api.register_user_quick(self.client)
 
+            # POST a video with user 1
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
             response = videos_api.patch_video(self.client,
-                                       5,
+                                       v_id,
                                        auth=auth
                                        )
 
@@ -502,7 +528,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=True
                                                )
             assert response.status_code == http.OK
@@ -510,10 +535,9 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=True
                                                )
-            assert response.status_code == http.BAD_REQ
+            assert response.status_code == http.NOT_MOD
 
             response = videos_api.get_video(self.client,
                                             v_id,
@@ -538,7 +562,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=False
                                                )
             assert response.status_code == http.OK
@@ -546,10 +569,9 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=False
                                                )
-            assert response.status_code == http.BAD_REQ
+            assert response.status_code == http.NOT_MOD
 
             response = videos_api.get_video(self.client,
                                                 v_id,
@@ -575,7 +597,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=True
                                                )
             assert response.status_code == http.OK
@@ -583,7 +604,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=False
                                                )
             assert response.status_code == http.OK
@@ -605,7 +625,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=False
                                                )
             assert response.status_code == http.OK
@@ -613,7 +632,6 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               u_id=u_id,
                                                upvote=True
                                                )
             assert response.status_code == http.OK
