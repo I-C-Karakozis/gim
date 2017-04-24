@@ -7,6 +7,7 @@ from app.mod_api.resources import json_utils
 from app.mod_api.resources import validators
 
 from werkzeug.datastructures import CombinedMultiDict
+from jsonschema import validate
 
 def video_info(video):
     return {
@@ -92,20 +93,63 @@ class Video(Resource):
     @auth.require_auth_token
     @auth.require_empty_query_string
     def patch(self, video_id):
-        # TODO: validate json input
+        """Updates the votes of the video.
+
+        Request: PATCH /Videos/5
+                 Authorization: Bearer auth_token
+        {
+            'upvote': True 
+        }
+        }
+        Response: HTTP 200 OK
+        {
+            'status': 'success',
+            'data': 
+                {
+                    'video_id': 5,
+                    'upvotes': 9001,
+                    'downvotes': 666
+                }
+        }
+        """
+        schema = {
+            "upvote" : "boolean"
+        }
+        post_data = request.get_json()
+        try:
+            validate(post_data, schema)
+        except:
+            response = json_utils.gen_response(success=False, msg='Bad JSON: u_id and upvote required.')
+            return make_response(jsonify(response), 401)
+
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
 
         video = models.Video.get_video_by_id(video_id)
         if video and video.u_id == u_id:
-            post_data = request.get_json()
-            if 'tags' in post_data:
-                video.add_tags(post_data['tags'])                
-                # TODO: voting
-            response = json_utils.gen_response(success=True)
+            old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()
+            
+            # repeat of existing vote
+            if old_vote:
+                if old_vote.upvote == post_data['upvote']:
+                    response = json_utils.gen_response(success=False, msg='You cannot cast the same vote twice')
+                    return make_response(jsonify(response), 400)
+                else:
+                    old_vote.upvote = not old_vote.upvote
+                    old_vote.commit()
+            else:   
+                new_vote = models.Vote(u_id, video_id, post_data['upvote'])       
+                new_vote.commit(True)
+
+            data = {
+                'video_id': video.v_id,
+                'upvotes': len([vt for vt in video.votes if vt.upvote]),
+                'downvotes': len([vt for vt in video.votes if not vt.upvote])
+                }
+            response = json_utils.gen_response(success=True, data = data)
             return make_response(jsonify(response), 200)    
         else:
-            response = json_utils.gen_response(success=False, msg='you do not own a video with this id')
+            response = json_utils.gen_response(success=False, msg='You do not own a video with this id')
             return make_response(jsonify(response), 401)
 
     @auth.require_auth_token

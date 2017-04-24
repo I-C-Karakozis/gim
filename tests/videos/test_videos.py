@@ -392,20 +392,232 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.UNAUTH
 
-    def test_patch(self):
+    def test_patch_upvote(self):
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST a video
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=True
+                                               )
+            assert response.status_code == http.OK
+           
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 1
+            assert data['data']['downvotes'] == 0
+
+            response = videos_api.get_video(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 1
+            assert data['data']['downvotes'] == 0
+
+    def test_patch_downvote(self):
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST a video
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=False
+                                               )
+            assert response.status_code == http.OK
+           
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 1
+
+            response = videos_api.get_video(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 1
+
+
+    def test_patch_not_owner(self): # not sure what this is for in terms of voting; i think it is relevant only if we patch tags
         pass
 
-    def test_patch_not_owner(self):
-        pass
+    def test_patch_vote_non_existent_video(self):
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
 
-    def test_patch_non_existent(self):
-        pass
+            response = videos_api.patch_video(self.client,
+                                       5,
+                                       auth=auth,
+                                       u_id=u_id,
+                                       upvote=False
+                                       )
+
+            assert response.status_code == http.UNAUTH
+
 
     def test_patch_no_data(self):
-        pass
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+
+            response = videos_api.patch_video(self.client,
+                                       5,
+                                       auth=auth
+                                       )
+
+            assert response.status_code == http.UNAUTH
 
     def test_patch_double_upvote(self):
-        pass
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST a video
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=True
+                                               )
+            assert response.status_code == http.OK
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=True
+                                               )
+            assert response.status_code == http.BAD_REQ
+
+            response = videos_api.get_video(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 1
+            assert data['data']['downvotes'] == 0
+
+    def test_patch_double_downvote(self):
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST a video
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=False
+                                               )
+            assert response.status_code == http.OK
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=False
+                                               )
+            assert response.status_code == http.BAD_REQ
+
+            response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+            assert response.status_code == http.OK
+                           
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 1
+           
 
     def test_patch_upvote_downvote(self):
-        pass
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST a video
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=True
+                                               )
+            assert response.status_code == http.OK
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=False
+                                               )
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 1
+
+    def test_patch_downvote_upvote(self):
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST a video
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=False
+                                               )
+            assert response.status_code == http.OK
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               u_id=u_id,
+                                               upvote=True
+                                               )
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 1
+            assert data['data']['downvotes'] == 0
