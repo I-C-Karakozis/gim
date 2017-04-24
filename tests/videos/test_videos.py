@@ -187,7 +187,99 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                 assert v_info['downvotes'] == 0
 
     def test_get_all_diff_geoloc(self):
-        pass
+        with self.client:
+            contents = ['one', 'day', 'we\'ll', 'hi']
+            latitudes = [60.0, 9.0, 71.0, 60.01]
+            longitudes = [20.0, 4.0, 80.0, 20.01]
+            tags = [
+                ['think', 'about'], 
+                ['the', 'stories'], 
+                ['that', 'we'], 
+                ['could', 'have', 'told', 'the']
+                ]
+
+            # register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST to Videos endpoint
+            video_info = {}
+            for content, ts, lat, lon in zip(contents, tags, latitudes, longitudes):
+                response = videos_api.post_video(self.client,
+                                                 auth=auth,
+                                                 video=StringIO.StringIO(content),
+                                                 tags=ts,
+                                                 lat=lat,                                                
+                                                 lon=lon
+                                                 )
+               
+                data = json.loads(response.data.decode())
+                video_info[data['data']['video_id']] = ts
+
+            assert len(set(video_info.keys())) == len(contents)
+            
+            # GET on Videos endpoint with specific geolocations
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth,
+                                                 lat=60.0,
+                                                 lon=20.0
+                                                 )
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.OK
+            assert len(data['data']['videos']) == 2 # I can also reproduce the process of calculating lat_max and lat_min for more rigorous testing
+                        
+            for v_info in data['data']['videos']:
+                assert set(v_info['tags']) == set(video_info[v_info['video_id']])
+                assert v_info['upvotes'] == 0
+                assert v_info['downvotes'] == 0
+
+    def test_get_geoloc_illegal_coordinates(self):
+        with self.client:
+            contents = ['one']
+            latitudes = [60.0]
+            longitudes = [20.0]
+
+            # register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST to Videos endpoint
+            video_infolat = {}
+            video_infolon = {}
+            for content, lat, lon in zip(contents, latitudes, longitudes):
+                response = videos_api.post_video(self.client,
+                                                 auth=auth,
+                                                 video=StringIO.StringIO(content),
+                                                 lat=lat,
+                                                 lon=lon
+                                                 )
+               
+                data = json.loads(response.data.decode())
+                video_infolat[data['data']['video_id']] = lat
+                video_infolon[data['data']['video_id']] = lon
+
+            assert len(set(video_infolat.keys())) == len(contents)
+            assert len(set(video_infolon.keys())) == len(contents)
+            
+            # GET on Videos endpoint with bad latitude
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth,
+                                                 lat=91.0,
+                                                 lon=20.0
+                                                 )
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.BAD_REQ
+
+            # GET on Videos endpoint with bad longitude
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth,
+                                                 lat=60.0,
+                                                 lon=-181.0
+                                                 )
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.BAD_REQ
+
 
     def test_delete(self):
         with self.client:

@@ -5,9 +5,11 @@ https://realpython.com/blog/python/token-based-authentication-with-flask
 
 import datetime
 import jwt
+import math
 
 from app import app, db, flask_bcrypt
 from app import video_client
+from sqlalchemy import and_
 
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -134,10 +136,13 @@ class Video(db.Model):
 
     @staticmethod
     def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):
-        # TODO: filter by lat and lon
-        
-        # filter by tags
-        with_tags = Video.query.join(Tag, Video.tags).filter(Video.tags.any(Tag.name.in_(tags))) if tags else Video.query
+        # filter by tags and geolocation
+        # print  lat_max, lat_min, lon_max, lon_min
+        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
+        geolocated_with_tags = Video.query.join(Tag, Video.tags).filter(and_(Video.tags.any(Tag.name.in_(tags)), Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)) if tags else Video.query.filter(and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min))
+
+        #geolocated = [video for video in with_tags.all() if video.lat < lat_max and video.lat > lat_min and video.lon < lon_max and video.lon > lon_min]
+        #print geolocated
 
         # TODO: filter with an order on votes
         if sort_by == 'popular':
@@ -147,7 +152,9 @@ class Video(db.Model):
         else:
             pass
 
-        return with_tags.all() # TODO
+        return geolocated_with_tags.all()
+
+    
 
 class BlacklistToken(db.Model):
     t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -165,3 +172,37 @@ class BlacklistToken(db.Model):
 
     def __repr__(self):
         return '<id: token: {}'.format(self.token)
+
+# implemented using equirectangular approximation; accurate for small distances
+def boxUser(lat, lon):
+    R = 6371 # value in kilometers
+    radius = 2.5 # initially set to 2.5 km
+    c = radius / R
+
+    # edge case to avoid division by zero
+    if lat >= 90 or lat <= -90:
+        cos_lat = 0.00000000001 # zero approximation; 10^(-1)
+    else:
+        cos_lat = math.cos(lat)
+    lat_radians = math.radians(lat)
+    lon_radians = math.radians(lon)    
+
+    # latitude calculations
+    lat_max = lat_radians + c
+    lat_min = lat_radians - c
+
+    # longitude calculations
+    lon_max = lon_radians + c / math.fabs(cos_lat)
+    lon_min = lon_radians - c / math.fabs(cos_lat)
+
+    # convert return values to degrees
+    lat_max = math.degrees(lat_max)
+    lat_min = math.degrees(lat_min)
+    lon_max = math.degrees(lon_max)
+    lon_min = math.degrees(lon_min)
+
+    # no need check for wrapping around because the edge of the world 
+    # is comprised of the ocean and a couple of fringe islandss
+
+    return lat_max, lat_min, lon_max, lon_min
+
