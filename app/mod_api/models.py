@@ -90,6 +90,11 @@ class Vote(db.Model):
         self.vid_id = vid_id
         self.upvote = upvote
 
+    def commit(self, insert = False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
+
 class Video(db.Model):
     v_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))

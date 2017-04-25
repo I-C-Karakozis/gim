@@ -3,6 +3,9 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import FloatField
 from wtforms.validators import InputRequired, NumberRange
 
+import jsonschema
+
+
 class VideoUploadForm(FlaskForm):
     class Meta:
         csrf = False
@@ -12,4 +15,5 @@ class VideoUploadForm(FlaskForm):
     # lon = FloatField('lon', validators=[InputRequired()])
     lat = FloatField('lat', validators = [InputRequired(), NumberRange(min=-90, max=90)])
     lon = FloatField('lon', validators = [InputRequired(), NumberRange(min=-180, max=180)])
+
 
