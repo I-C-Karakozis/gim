@@ -95,6 +95,10 @@ class Vote(db.Model):
             db.session.add(self)
         db.session.commit()
 
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
 class Video(db.Model):
     v_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
