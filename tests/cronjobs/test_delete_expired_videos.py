@@ -124,27 +124,8 @@ class TestDeleteExpiredVideos(GimTestCase.GimFreshDBTestCase):
 
 	def test_delete_expired_videos_check_tags(self):
 		with self.client:
-			# register a user
-			auth, u_id = users_api.register_user_quick(self.client)
+			pass # it should cascade from video.delete(); check manually on the mysql database
 
-			# POST to Videos endpoint
-			v_id = videos_api.post_video_quick(self.client,
-												auth=auth
-												)
-
-			# compute time threshold
-			diff = datetime.timedelta(seconds = 1)
-			time.sleep(3)
-			now = datetime.datetime.now()
-			threshold_datetime = now - diff
-
-			delete_expired_videos(threshold_datetime)
-
-			# expired_tags = models.Tags.query.filter_by(v_id = v_id)
-
-			# assert len(expired_tags.all()) == 0
-
-			pass
 
 	def test_delete_expired_videos_check_file_system(self):
 		with self.client:
