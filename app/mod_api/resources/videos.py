@@ -9,13 +9,14 @@ from app.mod_api.resources import validators
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
 
-def video_info(video):
+def video_info(video, u_id):
     return {
         'video_id': video.v_id,
         'uploaded_on': video.uploaded_on,
         'tags': [t.name for t in video.tags],
         'upvotes': len([vt for vt in video.votes if vt.upvote]),
-        'downvotes': len([vt for vt in video.votes if not vt.upvote])
+        'downvotes': len([vt for vt in video.votes if not vt.upvote]),
+        'user_vote': models.Vote.get_vote(u_id, video.v_id)
         }
 
 class VideoFiles(Resource):
@@ -75,7 +76,8 @@ class Video(Resource):
                     'uploaded_on': 'Wed, 12 Apr 2017 21:14:57 GMT',
                     'tags': ['some', 'tags'],
                     'upvotes': 9001,
-                    'downvotes': 666
+                    'downvotes': 666,
+                    'user_vote': -1
                 }
         }
         """
@@ -84,7 +86,7 @@ class Video(Resource):
         video = models.Video.get_video_by_id(video_id)
 
         if video:
-            response = json_utils.gen_response(data=video_info(video))
+            response = json_utils.gen_response(data=video_info(video, u_id))
             return make_response(jsonify(response), 200)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist')
@@ -210,6 +212,9 @@ class Videos(Resource):
                 }
         }
         """
+        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        u_id = models.User.decode_auth_token(auth_token)
+
         parser = reqparse.RequestParser()
         parser.add_argument('lat', type=float, required=True,
                             help='Latitude required')
@@ -234,7 +239,7 @@ class Videos(Resource):
             return make_response(jsonify(response), 400)
 
         videos = models.Video.search(lat, lon, tags, limit, offset, sort_by)
-        video_infos = [video_info(v) for v in videos]
+        video_infos = [video_info(v, u_id) for v in videos]
         response = json_utils.gen_response(data={'videos': video_infos})
         return make_response(jsonify(response), 200)
 
