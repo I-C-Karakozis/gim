@@ -34,6 +34,6 @@ def main():
 
     delete_expired_videos(threshold_datetime)
 
-
-main()
+if __name__ == 'main':
+    main()
 
