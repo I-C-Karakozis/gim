@@ -24,11 +24,6 @@ def delete_expired_videos(threshold_datetime):
         for vote in expired_votes:
             vote.delete()
 
-        # expired_tags = models.Video.query.join(Tag, Video.tags).filter_by(v_id = video.v_id)
-        # for tag_pair in expired_tags:
-        #     db.session.delete(tag_pair)
-        #     db.session.commit()
-
         video.delete()
 
 # compute threshold datetime
@@ -38,6 +33,7 @@ def main():
     threshold_datetime = now - diff
 
     delete_expired_videos(threshold_datetime)
+
 
 main()
 
