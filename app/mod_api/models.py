@@ -95,6 +95,23 @@ class Vote(db.Model):
             db.session.add(self)
         db.session.commit()
 
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+
+    # returns 0 if user has not voted the video, 1 if he has upvoted it and -1 if he has downvoted it
+    @staticmethod
+    def get_vote(u_id, vid_id):
+        user_vote = Vote.query.filter_by(u_id = u_id, vid_id = vid_id).first()
+        if user_vote:
+            if user_vote.upvote:
+                return 1
+            else:
+                return -1
+        else:
+            return 0
+
 class Video(db.Model):
     v_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
