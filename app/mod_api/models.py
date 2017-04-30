@@ -9,7 +9,7 @@ import math
 
 from app import app, db, flask_bcrypt
 from app import video_client
-from sqlalchemy import and_
+from sqlalchemy import and_, func, case, desc
 
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -141,25 +141,31 @@ class Video(db.Model):
 
     @staticmethod
     def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):
-        # filter by tags and geolocation
-        # print  lat_max, lat_min, lon_max, lon_min
+        # filter videos by tags and geolocation
         lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
-        geolocated_with_tags = Video.query.join(Tag, Video.tags).filter(and_(Video.tags.any(Tag.name.in_(tags)), Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)) if tags else Video.query.filter(and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min))
+        tag_filter = lambda : Video.tags.any(Tag.name.in_(tags)) # holy shit functional programming!!
+        geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
+        videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter(), geo_filter)) if tags else Video.query.filter(geo_filter)
 
-        #geolocated = [video for video in with_tags.all() if video.lat < lat_max and video.lat > lat_min and video.lon < lon_max and video.lon > lon_min]
-        #print geolocated
+        # order the videos        
+        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
 
-        # TODO: filter with an order on votes
         if sort_by == 'popular':
-            pass
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
         elif sort_by == 'recent':
-            pass
+            order = Video.uploaded_on.desc()
         else:
-            pass
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
 
-        return geolocated_with_tags.all()
+        videos = videos.order_by(order)
 
-    
+        # limit videos
+        videos = videos.limit(limit)
+
+        # offset the videos
+        videos = videos.offset(offset)
+
+        return videos.all()
 
 class BlacklistToken(db.Model):
     t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)

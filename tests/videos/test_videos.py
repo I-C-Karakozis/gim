@@ -133,10 +133,177 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                 assert v_info['downvotes'] == 0
 
     def test_get_all_by_popularity(self):
-        pass
+        with self.client:
+            contents = ['a', 'b', 'c', 'd', 'e']
+            net_votes = [0, -1, 1, 2, -2]
+            auth1, u_id1 = users_api.register_user_quick(self.client,
+                                                         email='gim@gim.com'
+                                                         )
+            auth2, u_id2 = users_api.register_user_quick(self.client,
+                                                         email='gim2@gim.com'
+                                                         )
+
+            video_ids = []
+            for content in contents:
+                v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+                video_ids.append(v_id)
+
+            # upvote videos according to net_votes
+            auths = (auth1, auth2)
+            for net_vote, video_id in zip(net_votes, video_ids):
+                upvotes = max(net_vote, 0)
+                downvotes = abs(min(net_vote, 0))
+                for i in range(upvotes):
+                    videos_api.upvote_video(self.client,
+                                            video_id,
+                                            auth=auths[i]
+                                            )
+                for j in range(downvotes):
+                    videos_api.downvote_video(self.client,
+                                              video_id,
+                                              auth=auths[-(j+1)]
+                                              )
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='popular'
+                                                 )
+            data = json.loads(response.data.decode())
+            
+            intended_order = map(lambda x: x[1], 
+                                 sorted(zip(net_votes, video_ids),
+                                        cmp=lambda x, y: x[0] - y[0],
+                                        reverse=True
+                                        )
+                                 ) 
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert returned_order == intended_order
 
     def test_get_all_by_recent(self):
-        pass
+        with self.client:
+            contents = ['a', 'b', 'c', 'd', 'e']
+            auth1, u_id1 = users_api.register_user_quick(self.client)
+
+            video_ids = {}
+            for content in contents:
+                v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+                video_ids[content] = v_id
+            
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='recent'
+                                                 )
+
+            data = json.loads(response.data.decode())
+
+            intended_order = [video_ids[content] for content in reversed(contents)]
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert returned_order == intended_order
+            
+    def test_get_with_lesser_limit(self):
+        with self.client:
+            contents = ['a', 'b', 'c', 'd', 'e']
+            limit = 3
+            auth1, u_id1 = users_api.register_user_quick(self.client)
+
+            video_ids = {}
+            for content in contents:
+                v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+                video_ids[content] = v_id
+            
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='recent',
+                                                 limit=limit
+                                                 )
+
+            data = json.loads(response.data.decode())
+
+            intended_order = [video_ids[content] for content in reversed(contents)][0:limit]
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert returned_order == intended_order
+
+    def test_get_with_larger_limit(self):
+        with self.client:
+            contents = ['a', 'b', 'c', 'd', 'e']
+            limit = 7
+            auth1, u_id1 = users_api.register_user_quick(self.client)
+
+            video_ids = {}
+            for content in contents:
+                v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+                video_ids[content] = v_id
+            
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='recent',
+                                                 limit=limit
+                                                 )
+
+            data = json.loads(response.data.decode())
+
+            intended_order = [video_ids[content] for content in reversed(contents)]
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert returned_order == intended_order
+
+    def test_get_with_offset(self):
+        with self.client:
+            contents = ['a', 'b', 'c', 'd', 'e']
+            limit = 3
+            offset = 1
+            auth1, u_id1 = users_api.register_user_quick(self.client)
+
+            video_ids = {}
+            for content in contents:
+                v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+                video_ids[content] = v_id
+            
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='recent',
+                                                 limit=limit,
+                                                 offset=offset
+                                                 )
+
+            data = json.loads(response.data.decode())
+
+            intended_order = [video_ids[content] for content in reversed(contents)][offset:offset+limit]
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert returned_order == intended_order
 
     def test_get_all_with_tags(self):
         with self.client:
