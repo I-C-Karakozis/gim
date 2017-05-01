@@ -99,7 +99,6 @@ class Vote(db.Model):
         db.session.delete(self)
         db.session.commit()
 
-
     # returns 0 if user has not voted the video, 1 if he has upvoted it and -1 if he has downvoted it
     @staticmethod
     def get_vote(u_id, vid_id):

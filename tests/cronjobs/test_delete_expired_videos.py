@@ -84,6 +84,50 @@ class TestDeleteExpiredVideos(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.NOT_FOUND
 
+    def test_delete_not_non_expired_videos(self):
+        with self.client:
+            # register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+
+            response = videos_api.post_video(self.client, auth, 
+                                            video=StringIO.StringIO('yannis'),
+                                            tags=['the', 'sitting', 'dead'],
+                                            lat=0.0,
+                                            lon=0.0
+                                            )
+
+            data = json.loads(response.data.decode())
+            v_id2 = data['data']['video_id']
+            
+            assert response.status_code == http.OK
+            
+            # compute time threshold
+            diff = datetime.timedelta(seconds = 1)
+            time.sleep(2)
+            v_id = videos_api.post_video_quick(self.client,
+                                                auth=auth
+                                                )
+            now = datetime.datetime.now()
+            threshold_datetime = now - diff
+
+            delete_expired_videos(threshold_datetime)
+
+            # GET on Videos endpoint, expect found
+            response = videos_api.get_video(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.OK
+
+            # GET on Videos endpoint, expect not found
+            response = videos_api.get_video(self.client,
+                                            v_id2,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
     def test_delete_expired_videos_check_votes(self):
         with self.client:
             # register two users

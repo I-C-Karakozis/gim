@@ -414,6 +414,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
            
             data = json.loads(response.data.decode())
+            assert data['data']['video_id'] == v_id
             assert data['data']['upvotes'] == 1
             assert data['data']['downvotes'] == 0
 
@@ -447,6 +448,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
            
             data = json.loads(response.data.decode())
+            assert data['data']['video_id'] == v_id
             assert data['data']['upvotes'] == 0
             assert data['data']['downvotes'] == 1
 
@@ -556,7 +558,10 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                                                auth=auth,
                                                upvote=True
                                                )
-            assert response.status_code == http.NOT_MOD
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 0
 
             response = videos_api.get_video(self.client,
                                             v_id,
@@ -565,9 +570,9 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
 
             data = json.loads(response.data.decode())
-            assert data['data']['upvotes'] == 1
+            assert data['data']['upvotes'] == 0
             assert data['data']['downvotes'] == 0
-            assert data['data']['user_vote'] == 1
+            assert data['data']['user_vote'] == 0
 
     def test_patch_double_downvote(self):
         with self.client:
@@ -591,7 +596,10 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                                                auth=auth,
                                                upvote=False
                                                )
-            assert response.status_code == http.NOT_MOD
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 0
 
             response = videos_api.get_video(self.client,
                                                 v_id,
@@ -601,8 +609,8 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                            
             data = json.loads(response.data.decode())
             assert data['data']['upvotes'] == 0
-            assert data['data']['downvotes'] == 1
-            assert data['data']['user_vote'] == -1
+            assert data['data']['downvotes'] == 0
+            assert data['data']['user_vote'] == 0
            
 
     def test_patch_upvote_downvote(self):
