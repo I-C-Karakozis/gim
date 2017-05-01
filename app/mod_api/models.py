@@ -167,12 +167,10 @@ class Video(db.Model):
         # order the videos        
         videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
 
-        if sort_by == 'popular':
-            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
-        elif sort_by == 'recent':
+        # default to sort_by popularity
+        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
+        if sort_by == 'recent':
             order = Video.uploaded_on.desc()
-        else:
-            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
 
         videos = videos.order_by(order)
 

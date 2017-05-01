@@ -134,6 +134,40 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                 assert v_info['downvotes'] == 0
                 assert v_info['user_vote'] == 0
 
+    def test_get_nonexistent_by_popularity(self):
+        with self.client:
+            auth, u_id = users_api.register_user_quick(self.client)
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='popular'
+                                                 )
+
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']
+            
+            assert response.status_code == http.OK
+            assert videos == []
+
+    def test_get_nonexistent_by_recent(self):
+        with self.client:
+            auth, u_id = users_api.register_user_quick(self.client)
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='recent'
+                                                 )
+
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']
+            
+            assert response.status_code == http.OK
+            assert videos == []
+
     def test_get_all_by_popularity(self):
         with self.client:
             contents = ['a', 'b', 'c', 'd', 'e']
@@ -214,7 +248,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.OK
             assert returned_order == intended_order
-            
+
     def test_get_with_lesser_limit(self):
         with self.client:
             contents = ['a', 'b', 'c', 'd', 'e']
