@@ -137,9 +137,9 @@ class Video(Resource):
             
             # repeat of existing vote
             if old_vote:
+                # remove vote
                 if old_vote.upvote == post_data['upvote']:
-                    response = json_utils.gen_response(success=True, msg='You cannot cast the same vote twice')
-                    return make_response(jsonify(response), 304)
+                    old_vote.delete()
                 else:
                     old_vote.upvote = post_data['upvote']
                     old_vote.commit()
