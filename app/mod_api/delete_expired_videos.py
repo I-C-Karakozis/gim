@@ -18,13 +18,10 @@ def delete_expired_videos(threshold_datetime):
     video_client.delete_videos([video.filepath for video in expired_videos])
 
     for video in expired_videos:
+        # delete votes and tag pairings of expired videos; update HoF too
+        addToHoF_or_deleteVideoAndVotes(video)
 
-        # delete votes and tag pairings of expired videos
-        expired_votes = models.Vote.query.filter_by(v_id = video.v_id)
-        for vote in expired_votes:
-            vote.delete()
-
-        video.delete()
+    return len(expired_videos)
 
 # compute threshold datetime
 def main():
@@ -32,8 +29,11 @@ def main():
     diff = datetime.timedelta(days = 3)
     threshold_datetime = now - diff
 
-    delete_expired_videos(threshold_datetime)
+    total_deleted = delete_expired_videos(threshold_datetime)
 
-if __name__ == 'main':
-    main()
+    # needed for logging
+    print 'Success: ' + total_deleted + 'expired videos deleted.'
+
+# if __name__ == 'main':
+main()
 

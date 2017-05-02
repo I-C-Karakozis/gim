@@ -11,6 +11,9 @@ from app import app, db, flask_bcrypt
 from app import video_client
 from sqlalchemy import and_, func, case, desc
 
+# maybe move yo cofnig?
+HALL_OF_FAME_LIMIT = 10
+
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
@@ -197,6 +200,74 @@ class BlacklistToken(db.Model):
 
     def __repr__(self):
         return '<id: token: {}'.format(self.token)
+
+
+class HallOfFame(db.Model):
+    hof_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
+    uploaded_on = db.Column(db.DateTime, nullable=False)
+    lat = db.Column(db.Float(precision=8), nullable=False)
+    lon = db.Column(db.Float(precision=8), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    filepath = db.Column(db.String(84), nullable=False)
+
+    def __init__(self, video, net_votes = 0):
+        self.u_id = video.u_id
+        self.uploaded_on = video.uploaded_on
+        self.lat = video.lat
+        self.lon = video.lon
+        self.score = net_votes
+        self.filepath = video.filepath
+
+    def commit(video, insert = False):
+        if insert:
+            db.session.add(self, video)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    @staticmethod
+    def addToHoF_or_deleteVideoAndVotes(video):
+        # measure score
+        expired_votes = Vote.query.filter_by(v_id = video.v_id)
+        net_votes = 0;
+        for vote in expired_votes:
+            if vote.upvote:
+                net_votes = net_votes + 1
+            else:
+                net_votes = net_votes - 1
+            vote.delete()
+
+        # update HoF
+        last = retrieve_last()
+        all_HoF = len(sort_desc_and_retrieve_all())
+        if all_HoF < HALL_OF_FAME_LIMIT:
+            winner = HallofFame(video, net_votes)
+        elif net_votes > last.score:
+            winner = HallofFame(video, net_votes)
+            last.delete()
+
+        video.delete()
+
+    @staticmethod
+    def get_video_by_id(_id):
+        return HallofFame.query.filter_by(hof_id=_id).first()
+
+    @staticmethod
+    def sort_desc_and_retrieve_all():
+        order = HallOfFame.score.desc()
+        HoF = HallofFame.order_by(order)
+        return HoF.all()
+
+    @staticmethod
+    def retrieve_last():
+        order = HallOfFame.score.asc()
+        HoF = HallofFame.order_by(order)
+        return HoF.first()
+
+
 
 # implemented using equirectangular approximation; accurate for small distances
 def boxUser(lat, lon):
