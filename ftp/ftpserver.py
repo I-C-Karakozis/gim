@@ -8,6 +8,7 @@ from pyftpdlib.servers import FTPServer
 # TODO: make a config file for this
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 VIDEO_STORE = os.path.join(BASE_DIR, 'videos')
+#HOF_STORE = os.path.join(BASE_DIR, 'videos/hof')
 
 class VideoServer:
     def __init__(self, host, port):

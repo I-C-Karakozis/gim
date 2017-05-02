@@ -219,12 +219,17 @@ class HallOfFame(db.Model):
         self.score = net_votes
         self.filepath = video.filepath
 
+        # update file system
+        # old_filepath =[video.filepath]
+        # video_client.upload_video(self.filepath, video_client.retrieve_videos([video.filepath])[0])        
+        # video_client.delete_videos(old_filepath)
+
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
 
-    def commit(video, insert = False):
+    def commit(self, insert = False):
         if insert:
-            db.session.add(self, video)
+            db.session.add(self)
         db.session.commit()
 
     def delete(self):
@@ -234,8 +239,8 @@ class HallOfFame(db.Model):
     @staticmethod
     def addToHoF_or_deleteVideoAndVotes(video):
         # measure score
-        expired_votes = Vote.query.filter_by(v_id = video.v_id)
-        net_votes = 0;
+        expired_votes = Vote.query.filter_by(vid_id = video.v_id)
+        net_votes = 0
         for vote in expired_votes:
             if vote.upvote:
                 net_votes = net_votes + 1
@@ -244,13 +249,20 @@ class HallOfFame(db.Model):
             vote.delete()
 
         # update HoF
-        last = retrieve_last()
-        all_HoF = len(sort_desc_and_retrieve_all())
+        last = HallOfFame.retrieve_last()
+        all_HoF = len(HallOfFame.sort_desc_and_retrieve_all())
         if all_HoF < HALL_OF_FAME_LIMIT:
-            winner = HallofFame(video, net_votes)
-        elif net_votes > last.score:
-            winner = HallofFame(video, net_votes)
+            winner = HallOfFame(video, net_votes)
+            winner.commit(insert = True)
+        elif net_votes > last.score and net_votes > last.score:
+            winner = HallOfFame(video, net_votes)
+            winner.commit(insert = True)
+            last_filepath =[last.filepath]
+            video_client.delete_videos(last_filepath)
             last.delete()
+        else:
+            old_filepath =[video.filepath]
+            video_client.delete_videos(old_filepath)
 
         video.delete()
 
@@ -260,15 +272,17 @@ class HallOfFame(db.Model):
 
     @staticmethod
     def sort_desc_and_retrieve_all():
+        hof = HallOfFame.query.filter()
         order = HallOfFame.score.desc()
-        HoF = HallofFame.order_by(order)
-        return HoF.all()
+        hof = hof.order_by(order)
+        return hof.all()
 
     @staticmethod
     def retrieve_last():
+        hof = HallOfFame.query.filter()
         order = HallOfFame.score.asc()
-        HoF = HallofFame.order_by(order)
-        return HoF.first()
+        hof = hof.order_by(order)
+        return hof.first()
 
 
 # implemented using equirectangular approximation; accurate for small distances

@@ -2,7 +2,7 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from resources import videos, users, auth
+from resources import videos, users, auth, hof
 from app import db
 
 mod_api = Blueprint('api', __name__, url_prefix='/api')

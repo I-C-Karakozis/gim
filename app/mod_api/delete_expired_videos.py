@@ -14,14 +14,11 @@ def delete_expired_videos(threshold_datetime):
     # collect filepaths and video ids
     expired_videos = models.Video.query.filter(models.Video.uploaded_on < threshold_datetime)
 
-    # delete video file 
-    video_client.delete_videos([video.filepath for video in expired_videos])
-
     for video in expired_videos:
         # delete votes and tag pairings of expired videos; update HoF too
-        addToHoF_or_deleteVideoAndVotes(video)
+        models.HallOfFame.addToHoF_or_deleteVideoAndVotes(video)
 
-    return len(expired_videos)
+    return len(expired_videos.all())
 
 # compute threshold datetime
 def main():
@@ -32,7 +29,7 @@ def main():
     total_deleted = delete_expired_videos(threshold_datetime)
 
     # needed for logging
-    print 'Success: ' + total_deleted + 'expired videos deleted.'
+    print 'Success: ' + str(total_deleted) + ' expired videos deleted.'
 
 # if __name__ == 'main':
 main()
