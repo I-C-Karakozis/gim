@@ -219,6 +219,9 @@ class HallOfFame(db.Model):
         self.score = net_votes
         self.filepath = video.filepath
 
+    def retrieve(self):
+        return video_client.retrieve_videos([self.filepath])[0]
+
     def commit(video, insert = False):
         if insert:
             db.session.add(self, video)
@@ -266,7 +269,6 @@ class HallOfFame(db.Model):
         order = HallOfFame.score.asc()
         HoF = HallofFame.order_by(order)
         return HoF.first()
-
 
 
 # implemented using equirectangular approximation; accurate for small distances
