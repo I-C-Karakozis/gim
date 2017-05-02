@@ -4,6 +4,9 @@ from flask_restful import Resource
 from app import app, db, flask_bcrypt
 from app.mod_api import models
 
+import re
+import string
+
 def require_auth_token(func):
     def fail_without_auth(*args, **kwargs):
         auth_header = request.headers.get('Authorization')
@@ -41,6 +44,13 @@ def require_empty_query_string(func):
             return func(*args, **kwargs)
     return fail_on_query_string
 
+def meets_password_requirements(password):
+    len_req = len(password) >= app.config.get('MIN_PASS_LEN')
+    letter_req = re.search('[A-Za-z]', password)
+    number_req = re.search('\\d', password)
+    punctuation_req = re.search('[^A-Za-z0-9]', password)
+    return len_req and letter_req and number_req and punctuation_req
+    
 class Register(Resource):
     """ The Register endpoint is for creating a new user.
 
@@ -67,6 +77,16 @@ class Register(Resource):
         }
         """
         post_data = request.get_json()
+        password = post_data.get('password')
+
+
+        if not meets_password_requirements(password):
+            response = {
+                'status': 'failed',
+                'message': 'password must be at least {} characters long, contain 1 number, 1 letter, and 1 punctuation mark'
+                }
+            return make_response(jsonify(response), 400) 
+            
         user = models.User.query.filter_by(email=post_data.get('email')).first()
         if not user:
             try:

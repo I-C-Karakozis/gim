@@ -71,6 +71,13 @@ class User(Resource):
                     passed_old_password = post_data.get('password')
                     passed_new_password = post_data.get('new_password')
 
+                    if not auth.meets_password_requirements(passed_new_password):
+                        response = {
+                            'status': 'failed',
+                            'message': 'password must be at least 6 chars long, contain 1 number, 1 letter, and 1 punctuation'
+                            }
+                        return make_response(jsonify(response), 400)
+
                     if not flask_bcrypt.check_password_hash(user.password_hash, passed_old_password):
                         response = {
                             'status': 'failed',
