@@ -268,7 +268,7 @@ class HallOfFame(db.Model):
 
     @staticmethod
     def get_video_by_id(_id):
-        return HallofFame.query.filter_by(hof_id=_id).first()
+        return HallOfFame.query.filter_by(hof_id=_id).first()
 
     @staticmethod
     def sort_desc_and_retrieve_all():
