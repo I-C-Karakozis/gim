@@ -30,8 +30,11 @@ class Config(object):
 	# Secret key for signing cookies
 	SECRET_KEY = "secret"
 
-	# Bycrpt cryptographic parameters
+	# Bcyrpt cryptographic parameters
 	BCRYPT_LOG_ROUNDS = 7
+
+	# Minimum password length
+	MIN_PASS_LEN = 6
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI ='mysql://yannis:gim-333@localhost/db'

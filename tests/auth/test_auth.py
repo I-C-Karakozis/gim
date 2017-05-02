@@ -21,7 +21,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
         with self.client:
             response = api.register_user(self.client, 
                                          email='goofy@goober.com',
-                                         password='password'
+                                         password='password1!'
                                          )
             data = json.loads(response.data.decode())
             assert data['status'] == 'success'
@@ -36,7 +36,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
         with self.client:
             response = api.register_user(self.client,
                                          email=user.email,
-                                         password=''
+                                         password='password1!'
                                          )
             data = json.loads(response.data.decode())
             assert data['status'] == 'failed'
@@ -47,7 +47,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
         with self.client:
             response_register = api.register_user(self.client,
                                                   email='goofy@goober.com',
-                                                  password='password'
+                                                  password='password1!'
                                                   )
             data_register = json.loads(response_register.data.decode())
             assert data_register['status'] == 'success'
@@ -56,7 +56,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert response_register.status_code == http.CREATED
             response_login = api.login_user(self.client,
                                             email='goofy@goober.com',
-                                            password='password'
+                                            password='password1!'
                                             )
             data_login = json.loads(response_login.data.decode())
             assert data_login['status'] == 'success'
@@ -68,7 +68,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
         with self.client:
             response = api.login_user(self.client,
                                       email='test@test.com',
-                                      password='password'
+                                      password='password1!'
                                       )
             data = json.loads(response.data.decode())
             assert data['status'] == 'failed'
@@ -79,7 +79,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
         with self.client:
             response_register = api.register_user(self.client,
                                                   email='test@test.com',
-                                                  password='password'
+                                                  password='password1!'
                                                   )
             auth_token = json.loads(response_register.data.decode())['auth_token']
             response_user = api.get_user_status(self.client,
@@ -93,7 +93,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
         with self.client:
             response_register = api.register_user(self.client,
                                                   email='test@test.com',
-                                                  password='password'
+                                                  password='password1!'
                                                   )
             data_register = json.loads(response_register.data.decode())
             assert data_register['status'] == 'success'
@@ -102,7 +102,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert response_register.status_code == http.CREATED
             response_login = api.login_user(self.client,
                                             email='test@test.com',
-                                            password='password'
+                                            password='password1!'
                                             )
             data_login = json.loads(response_login.data.decode())
             assert data_login['status'] == 'success'
@@ -151,7 +151,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
         with self.client:
             response_register = api.register_user(self.client,
                                                   email='test@test.com',
-                                                  password='password'
+                                                  password='password1!'
                                                   )
             auth_token = json.loads(response_register.data.decode())['auth_token']
             blacklist_token = models.BlacklistToken(token=auth_token)

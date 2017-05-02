@@ -187,6 +187,8 @@ class Videos(Resource):
     post -- uploads a video and returns its video id; authentication token required
     """
 
+    LIMIT = 20
+
     @auth.require_auth_token
     def get(self):
         """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
@@ -229,16 +231,16 @@ class Videos(Resource):
         lat = args['lat']
         lon = args['lon']
         tags = args.get('tag', [])
-        limit = args.get('limit', 5)
-        offset = args.get('offset', 0)
-        sort_by = args.get('sortBy', 'popular')
-
+        limit = args.get('limit') if args.get('limit') else Videos.LIMIT 
+        offset = args.get('offset') if args.get('offset') else 0
+        sort_by = args.get('sortBy') if args.get('sortBy') else 'popular'
+        
         # check for illegal query coordinates
         if lat > 90 or lat < -90 or lon > 180 or lon < -180:
             response = json_utils.gen_response(success=False, msg='Illegal coordinates entered')
             return make_response(jsonify(response), 400)
 
-        videos = models.Video.search(lat, lon, tags, limit, offset, sort_by)
+        videos = models.Video.search(lat, lon, tags, min(limit, Videos.LIMIT), offset, sort_by)
         video_infos = [video_info(v, u_id) for v in videos]
         response = json_utils.gen_response(data={'videos': video_infos})
         return make_response(jsonify(response), 200)

@@ -1,5 +1,7 @@
 import json
 import StringIO
+import random
+import string
 
 def get(client, url, auth):
     return client.get(
@@ -41,9 +43,9 @@ def delete(client, url, auth):
 def post_video(client, auth, video=None, **kwargs):
     return post(client, '/api/Videos', auth, video, **kwargs)
 
-def post_video_quick(client, auth):
-    response = post_video(client, auth, video=StringIO.StringIO('abba'),
-                      tags=['the', 'walking', 'living'],
+def post_video_quick(client, auth, content='abba', tags=['lately', 'ive']):
+    response = post_video(client, auth, video=StringIO.StringIO(content),
+                      tags=tags,
                       lat=0.0,
                       lon=0.0
                       )
@@ -65,3 +67,18 @@ def get_all_videos(client, auth, tags=[], **kwargs):
 
 def get_video_file(client, v_id, auth):
     return get(client, '/api/VideoFiles/%d' %v_id, auth)
+
+def upvote_video(client, v_id, auth):
+    return patch_video(client,
+                       v_id,
+                       auth=auth,
+                       upvote=True
+                       )
+
+def downvote_video(client, v_id, auth):
+    return patch_video(client,
+                       v_id,
+                       auth=auth,
+                       upvote=False
+                       )
+                  

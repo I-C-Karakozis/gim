@@ -51,7 +51,7 @@ def login_user(client, email, password):
     return post(client, '/api/Auth/Login', email=email, password=password)
     
 def register_user_quick(client, email='goofy@goober.com'):
-    response = post(client, '/api/Auth/Register', email=email, password='password')
+    response = post(client, '/api/Auth/Register', email=email, password='password1!')
     data = json.loads(response.data.decode())
     auth_token = data['auth_token']
     auth = 'Bearer ' + auth_token

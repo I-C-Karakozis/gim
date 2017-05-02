@@ -8,14 +8,7 @@ class TestUsers(GimTestCase.GimFreshDBTestCase):
     def test_get(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
 
             # GET on the Users endpoint with the user's id
             response = api.get_user(self.client,
@@ -26,14 +19,7 @@ class TestUsers(GimTestCase.GimFreshDBTestCase):
 
     def test_patch(self):
         # register a user
-        response = api.register_user(self.client, 
-                                     email='goofy@goober.com',
-                                     password='password'
-                                     )
-        data = json.loads(response.data.decode())
-        auth_token = data['auth_token']
-        auth = 'Bearer ' + auth_token
-        u_id = data['data']['user_id']
+        auth, u_id = api.register_user_quick(self.client)
         
         # PATCH on the Users endpoint with user's id
         response = api.patch_user(self.client,
@@ -44,14 +30,7 @@ class TestUsers(GimTestCase.GimFreshDBTestCase):
 
     def test_delete(self):
         # register a user
-        response = api.register_user(self.client, 
-                                     email='goofy@goober.com',
-                                     password='password'
-                                     )
-        data = json.loads(response.data.decode())
-        auth_token = data['auth_token']
-        auth = 'Bearer ' + auth_token
-        u_id = data['data']['user_id']
+        auth, u_id = api.register_user_quick(self.client)
 
         # DELETE on the Users endpoint with the user's id
         response = api.delete_user(self.client,

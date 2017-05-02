@@ -10,14 +10,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
     def test_get_valid(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
             
             
             response = api.get_user(self.client,
@@ -41,14 +34,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
     def test_get_invalid_uid(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
             
             response = api.get_user(self.client,
                                     u_id = 100,
@@ -58,26 +44,13 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             data = json.loads(response.data.decode())
             assert response.status_code == http.UNAUTH
 
-    def test_get_invalid_ayth(self):
+    def test_get_invalid_auth(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
-
-            response = api.register_user(self.client, 
-                                         email='goof@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth2 = 'Bearer ' + auth_token
-            u_id2 = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
+            auth2, u_id2 = api.register_user_quick(self.client,
+                                                   email='goof@goober.com'
+                                                   )
             
             response = api.get_user(self.client,
                                     u_id = u_id,
@@ -98,19 +71,12 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
     def test_delete_valid(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
             
             response = api.delete_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password'
+                                       password = 'password1!'
                                     )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
@@ -125,14 +91,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
     def test_delete_invalid_password(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
             
             response = api.delete_user(self.client,
                                        u_id = u_id,
@@ -152,14 +111,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
     def test_delete_invalid_noPassword(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
             
             response = api.delete_user(self.client,
                                        u_id = u_id,
@@ -176,15 +128,8 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
 
     def test_delete_invalid_uid(self):
         with self.client:
-            # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            # register a user            
+            auth, u_id = api.register_user_quick(self.client)
             
             response = api.delete_user(self.client,
                                        u_id = 5,
@@ -203,20 +148,13 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
     def test_patch_valid_testNewPassword(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
             
             response = api.patch_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password',
-                                       new_password = 'new_password'
+                                       password = 'password1!',
+                                       new_password = 'new_password1!'
                                     )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
@@ -225,8 +163,8 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             response = api.patch_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'new_password',
-                                       new_password = 'password'
+                                       password = 'new_password1!',
+                                       new_password = 'password1!'
                                     )
             assert response.status_code == http.OK
 
@@ -235,7 +173,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             # register a user
             response = api.register_user(self.client, 
                                          email='goofy@goober.com',
-                                         password='password'
+                                         password='password1!'
                                          )
             data = json.loads(response.data.decode())
             auth_token = data['auth_token']
@@ -245,8 +183,8 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             response = api.patch_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password',
-                                       new_password = 'new_password'
+                                       password = 'password1!',
+                                       new_password = 'new_password1!'
                                     )
 
             assert response.status_code == http.OK
@@ -257,35 +195,29 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             response = api.delete_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password'
+                                       password = 'password1!'
                                     )
             assert response.status_code == http.UNAUTH
 
     def test_patch_invalid_password(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
             
             response = api.patch_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
                                        password = 'passwordd',
-                                       new_password = 'hi'
+                                       new_password = 'hihello1!'
                                     )
+
             assert response.status_code == http.UNAUTH
 
             # test old password still provides accessibility
             response = api.delete_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password'
+                                       password = 'password1!'
                                     )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
@@ -303,7 +235,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             # register a user
             response = api.register_user(self.client, 
                                          email='goofy@goober.com',
-                                         password='password'
+                                         password='password1!'
                                          )
             data = json.loads(response.data.decode())
             auth_token = data['auth_token']
@@ -313,7 +245,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             response = api.patch_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       new_password = 'new_password'
+                                       new_password = 'new_password1!'
                                     )
             assert response.status_code == http.BAD_REQ
 
@@ -321,7 +253,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             response = api.delete_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password'
+                                       password = 'password1!'
                                     )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
@@ -336,19 +268,12 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
     def test_patch_invalid_noNewPassword(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client) 
             
             response = api.patch_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password'
+                                       password = 'password1!'
                                     )
             assert response.status_code == http.BAD_REQ
 
@@ -356,7 +281,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             response = api.delete_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password'
+                                       password = 'password1!'
                                     )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
@@ -372,20 +297,13 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
     def test_patch_invalid_uid(self):
         with self.client:
             # register a user
-            response = api.register_user(self.client, 
-                                         email='goofy@goober.com',
-                                         password='password'
-                                         )
-            data = json.loads(response.data.decode())
-            auth_token = data['auth_token']
-            auth = 'Bearer ' + auth_token
-            u_id = data['data']['user_id']
+            auth, u_id = api.register_user_quick(self.client)
             
             response = api.patch_user(self.client,
                                        u_id = 5,
                                        auth = auth,
-                                       password = 'password',
-                                       new_password = 'new_password'
+                                       password = 'password1!',
+                                       new_password = 'new_password1!'
                                        )
             assert response.status_code == http.UNAUTH
 
@@ -393,7 +311,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             response = api.delete_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
-                                       password = 'password'
+                                       password = 'password1!'
                                     )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
@@ -405,11 +323,3 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.NOT_FOUND
 
-
-
-
-
-
-   
-
-    
