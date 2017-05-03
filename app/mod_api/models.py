@@ -225,7 +225,7 @@ class HallOfFame(db.Model):
         # video_client.delete_videos(old_filepath)
 
     def retrieve(self):
-        return video_client.retrieve_videos([self.filepath])[0]
+        return video_client.retrieve_videos([self.filepath], is_hof=True)[0]
 
     def commit(self, insert = False):
         if insert:
@@ -237,33 +237,32 @@ class HallOfFame(db.Model):
         db.session.commit()
 
     @staticmethod
-    def addToHoF_or_deleteVideoAndVotes(video):
+    def add_to_hof_or_delete(video):
         # measure score
+        video.retrieve()
         expired_votes = Vote.query.filter_by(vid_id = video.v_id)
-        net_votes = 0
+        net_votes = sum([1 if vote.upvote else -1 for vote in expired_votes]) 
         for vote in expired_votes:
-            if vote.upvote:
-                net_votes = net_votes + 1
-            else:
-                net_votes = net_votes - 1
             vote.delete()
 
         # update HoF
         last = HallOfFame.retrieve_last()
+        old_filepath =[video.filepath]
         all_HoF = len(HallOfFame.sort_desc_and_retrieve_all())
+
         if all_HoF < HALL_OF_FAME_LIMIT:
             winner = HallOfFame(video, net_votes)
-            winner.commit(insert = True)
-        elif net_votes > last.score and net_votes > last.score:
+            winner.commit(insert=True)
+            video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+        elif net_votes > last.score:
+            last_filepath = [last.filepath]
             winner = HallOfFame(video, net_votes)
-            winner.commit(insert = True)
-            last_filepath =[last.filepath]
-            video_client.delete_videos(last_filepath)
+            winner.commit(insert = True)            
+            video_client.delete_videos(last_filepath, is_hof=True)
             last.delete()
-        else:
-            old_filepath =[video.filepath]
-            video_client.delete_videos(old_filepath)
+            video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
 
+        video_client.delete_videos(old_filepath)
         video.delete()
 
     @staticmethod

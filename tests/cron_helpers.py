@@ -29,7 +29,8 @@ def simulate_hof(client, number_of_videos):
     video_ids = []
     for content in contents:
         v_id = videos_api.post_video_quick(client,
-                                           auth=auths[0]
+                                           auth=auths[0], 
+                                           content=content
                                            )
         video_ids.append(v_id)
 

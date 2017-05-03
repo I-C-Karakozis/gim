@@ -8,7 +8,7 @@ from pyftpdlib.servers import FTPServer
 # TODO: make a config file for this
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 VIDEO_STORE = os.path.join(BASE_DIR, 'videos')
-#HOF_STORE = os.path.join(BASE_DIR, 'videos/hof')
+HOF_STORE = os.path.join(BASE_DIR, 'videos/hof')
 
 class VideoServer:
     def __init__(self, host, port):
@@ -21,6 +21,13 @@ class VideoServer:
         authorizer.add_user('deleter', 'password', VIDEO_STORE, perm='d')
         # write-only user for posting videos
         authorizer.add_user('poster', 'password', VIDEO_STORE, perm='w')
+
+        # read-only user for searching videos
+        authorizer.add_user('hof_searcher', 'password', HOF_STORE, perm='r') 
+        # delete-only user for removing videos (script)
+        authorizer.add_user('hof_deleter', 'password', HOF_STORE, perm='d')
+        # write-only user for posting videos
+        authorizer.add_user('hof_poster', 'password', HOF_STORE, perm='w')
 
         handler = FTPHandler
         handler.authorizer = authorizer
