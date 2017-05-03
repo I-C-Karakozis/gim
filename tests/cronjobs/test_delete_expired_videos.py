@@ -6,6 +6,7 @@ from app.mod_api.delete_expired_videos import delete_expired_videos
 from tests import GimTestCase
 from tests import user_helpers as users_api
 from tests import video_helpers as videos_api
+from tests import cron_helpers as cron
 from tests import http_helpers as http
 
 import time
@@ -23,14 +24,8 @@ class TestDeleteExpiredVideos(GimTestCase.GimFreshDBTestCase):
             v_id = videos_api.post_video_quick(self.client,
                                                 auth=auth
                                                 )
-
-            # compute time threshold            
-            diff = datetime.timedelta(seconds = 1)
-            time.sleep(3)
-            now = datetime.datetime.now()
-            threshold_datetime = now - diff
-
-            delete_expired_videos(threshold_datetime)
+         
+            cron.delete_expired()
 
             # GET on Videos endpoint, expect not found
             response = videos_api.get_video(self.client,
@@ -59,13 +54,7 @@ class TestDeleteExpiredVideos(GimTestCase.GimFreshDBTestCase):
             data = json.loads(response.data.decode())
             v_id2 = data['data']['video_id']
             
-            # compute time threshold
-            diff = datetime.timedelta(seconds = 1)
-            time.sleep(3)
-            now = datetime.datetime.now()
-            threshold_datetime = now - diff
-
-            delete_expired_videos(threshold_datetime)
+            cron.delete_expired()
 
             # GET on Videos endpoint, expect not found
             response = videos_api.get_video(self.client,
@@ -154,22 +143,11 @@ class TestDeleteExpiredVideos(GimTestCase.GimFreshDBTestCase):
                                             )
             assert response.status_code == http.OK
 
-            # compute time threshold
-            diff = datetime.timedelta(seconds = 1)
-            time.sleep(3)
-            now = datetime.datetime.now()
-            threshold_datetime = now - diff
-
-            delete_expired_videos(threshold_datetime)           
+            cron.delete_expired()           
 
             expired_votes = models.Vote.query.filter_by(v_id = v_id)
 
             assert len(expired_votes.all()) == 0
-
-    def test_delete_expired_videos_check_tags(self):
-        with self.client:
-            pass # it should cascade from video.delete(); check manually on the mysql database
-
 
     def test_delete_expired_videos_check_file_system(self):
         with self.client:
@@ -183,13 +161,7 @@ class TestDeleteExpiredVideos(GimTestCase.GimFreshDBTestCase):
 
             videos = models.Video.query.filter_by(v_id = v_id)
 
-            # compute time threshold
-            diff = datetime.timedelta(seconds = 1)
-            time.sleep(3)
-            now = datetime.datetime.now()
-            threshold_datetime = now - diff
-
-            delete_expired_videos(threshold_datetime)
+            cron.delete_expired()
             
             video = video_client.retrieve_videos([video.filepath for video in videos])
             assert len(video) == 0

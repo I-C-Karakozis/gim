@@ -11,6 +11,9 @@ from app import app, db, flask_bcrypt
 from app import video_client
 from sqlalchemy import and_, func, case, desc
 
+# maybe move yo cofnig?
+HALL_OF_FAME_LIMIT = 10
+
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
@@ -197,6 +200,89 @@ class BlacklistToken(db.Model):
 
     def __repr__(self):
         return '<id: token: {}'.format(self.token)
+
+
+class HallOfFame(db.Model):
+    hof_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
+    uploaded_on = db.Column(db.DateTime, nullable=False)
+    lat = db.Column(db.Float(precision=8), nullable=False)
+    lon = db.Column(db.Float(precision=8), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    filepath = db.Column(db.String(84), nullable=False)
+
+    def __init__(self, video, net_votes = 0):
+        self.u_id = video.u_id
+        self.uploaded_on = video.uploaded_on
+        self.lat = video.lat
+        self.lon = video.lon
+        self.score = net_votes
+        self.filepath = video.filepath
+
+        # update file system
+        # old_filepath =[video.filepath]
+        # video_client.upload_video(self.filepath, video_client.retrieve_videos([video.filepath])[0])        
+        # video_client.delete_videos(old_filepath)
+
+    def retrieve(self):
+        return video_client.retrieve_videos([self.filepath], is_hof=True)[0]
+
+    def commit(self, insert = False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    @staticmethod
+    def add_to_hof_or_delete(video):
+        # measure score
+        video.retrieve()
+        expired_votes = Vote.query.filter_by(vid_id = video.v_id)
+        net_votes = sum([1 if vote.upvote else -1 for vote in expired_votes]) 
+        for vote in expired_votes:
+            vote.delete()
+
+        # update HoF
+        last = HallOfFame.retrieve_last()
+        old_filepath =[video.filepath]
+        all_HoF = len(HallOfFame.sort_desc_and_retrieve_all())
+
+        if all_HoF < HALL_OF_FAME_LIMIT:
+            winner = HallOfFame(video, net_votes)
+            winner.commit(insert=True)
+            video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+        elif net_votes > last.score:
+            last_filepath = [last.filepath]
+            winner = HallOfFame(video, net_votes)
+            winner.commit(insert = True)            
+            video_client.delete_videos(last_filepath, is_hof=True)
+            last.delete()
+            video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+
+        video_client.delete_videos(old_filepath)
+        video.delete()
+
+    @staticmethod
+    def get_video_by_id(_id):
+        return HallOfFame.query.filter_by(hof_id=_id).first()
+
+    @staticmethod
+    def sort_desc_and_retrieve_all():
+        hof = HallOfFame.query.filter()
+        order = HallOfFame.score.desc()
+        hof = hof.order_by(order)
+        return hof.all()
+
+    @staticmethod
+    def retrieve_last():
+        hof = HallOfFame.query.filter()
+        order = HallOfFame.score.asc()
+        hof = hof.order_by(order)
+        return hof.first()
+
 
 # implemented using equirectangular approximation; accurate for small distances
 def boxUser(lat, lon):
