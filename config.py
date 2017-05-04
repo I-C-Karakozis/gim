@@ -37,7 +37,7 @@ class Config(object):
 	MIN_PASS_LEN = 6
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI ='mysql://yannis:gim-333@localhost/db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('PURVIEW_MYSQL', '')
     CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
     SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
 
