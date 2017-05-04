@@ -1,3 +1,4 @@
+import os
 
 class Config(object):
     # Statement for enabling the development environment
@@ -5,7 +6,6 @@ class Config(object):
 	TESTING = False
 
 	# Define the application directory
-	import os
 	BASE_DIR = os.path.abspath(os.path.dirname(__file__))  
 
 	# Define the database - we are working with
@@ -38,6 +38,8 @@ class Config(object):
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI ='mysql://yannis:gim-333@localhost/db'
+    CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
+    SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
 
 class TestingConfig(Config):
     TESTING = True
