@@ -9,9 +9,8 @@ import math
 
 from app import app, db, flask_bcrypt
 from app import video_client
-from sqlalchemy import and_, func, case, desc
+from sqlalchemy import and_, func, case
 
-# maybe move yo cofnig?
 HALL_OF_FAME_LIMIT = 10
 
 class User(db.Model):
@@ -22,6 +21,7 @@ class User(db.Model):
     votes = db.relationship('Vote', backref='user', lazy='dynamic') 
     registered_on = db.Column(db.DateTime, nullable=False)
     last_active_on = db.Column(db.DateTime, nullable=False)
+    stored_score = db.Column(db.Integer, nullable=False)
 
     def __init__(self, email, password):
         self.email = email
@@ -29,6 +29,14 @@ class User(db.Model):
         now = datetime.datetime.now()
         self.registered_on = now
         self.last_active_on = now
+        self.stored_score = 0
+
+    def get_score(self):
+        votes = Vote.query.filter_by(u_id = self.u_id).count()
+        video_scores = db.session.query(func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).label('net_votes')).select_from(Video).join(Vote).filter(Video.u_id == self.u_id)
+        video_score = db.session.query(func.sum(video_scores.subquery().columns.net_votes)).scalar()
+        video_score = 0 if not video_score else video_score
+        return votes + video_score + self.stored_score
 
     def encode_auth_token(self):
         now = datetime.datetime.now()
@@ -43,6 +51,11 @@ class User(db.Model):
             app.config.get('SECRET_KEY'),
             algorithm='HS256'
             )
+
+    def commit(self, insert=False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
 
     @staticmethod
     def decode_auth_token(auth_token):
@@ -145,12 +158,29 @@ class Video(db.Model):
                 self.tags.append(t)
         self.commit()
 
+    def net_votes(self):
+        return sum((1 if vote.upvote else -1 for vote in self.votes))
+
     def commit(self, insert=False):
         if insert:
             db.session.add(self)
         db.session.commit()
 
     def delete(self):
+        # update video owners base score
+        user = User.query.filter_by(u_id = self.u_id).first()
+        user.stored_score += self.net_votes()
+        user.commit()
+        # update users' base scores who voted on this video
+        voters = User.query.join(Vote).filter(Vote.vid_id == self.v_id)
+        for voter in voters:
+            voter.stored_score += 1
+            voter.commit()
+        # delete votes associated with video
+        expired_votes = Vote.query.filter_by(vid_id = self.v_id)
+        for vote in expired_votes:
+            vote.delete()
+        # delete the video
         db.session.delete(self)
         db.session.commit()
 
@@ -219,11 +249,6 @@ class HallOfFame(db.Model):
         self.score = net_votes
         self.filepath = video.filepath
 
-        # update file system
-        # old_filepath =[video.filepath]
-        # video_client.upload_video(self.filepath, video_client.retrieve_videos([video.filepath])[0])        
-        # video_client.delete_videos(old_filepath)
-
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath], is_hof=True)[0]
 
@@ -239,11 +264,8 @@ class HallOfFame(db.Model):
     @staticmethod
     def add_to_hof_or_delete(video):
         # measure score
-        video.retrieve()
-        expired_votes = Vote.query.filter_by(vid_id = video.v_id)
-        net_votes = sum([1 if vote.upvote else -1 for vote in expired_votes]) 
-        for vote in expired_votes:
-            vote.delete()
+        net_votes = video.net_votes() 
+        user = User.query.filter_by(u_id = video.u_id).first()
 
         # update HoF
         last = HallOfFame.retrieve_last()
@@ -254,6 +276,8 @@ class HallOfFame(db.Model):
             winner = HallOfFame(video, net_votes)
             winner.commit(insert=True)
             video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+            user.stored_score += net_votes
+            user.commit()
         elif net_votes > last.score:
             last_filepath = [last.filepath]
             winner = HallOfFame(video, net_votes)
@@ -261,6 +285,8 @@ class HallOfFame(db.Model):
             video_client.delete_videos(last_filepath, is_hof=True)
             last.delete()
             video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+            user.stored_score += net_votes
+            user.commit()
 
         video_client.delete_videos(old_filepath)
         video.delete()

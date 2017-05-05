@@ -264,3 +264,55 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
                                             )
 
             assert response.status_code == http.NOT_FOUND
+
+    def test_score_carryover(self):
+        with self.client:
+            # register a user
+            auth1, u_id1 = users_api.register_user_quick(self.client,
+                                                         email="gim@gim.com"
+                                                         )
+            auth2, u_id2 = users_api.register_user_quick(self.client,
+                                                         email="gim2@gim.com"
+                                                         )
+
+            # post a video by user
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth1
+                                               )
+
+            # upvote video
+            videos_api.upvote_video(self.client,
+                                    v_id,
+                                    auth=auth1
+                                    )
+            videos_api.upvote_video(self.client,
+                                    v_id,
+                                    auth=auth2
+                                    )
+
+            # delete the video into the hall of fame
+            cron.delete_expired()
+
+            # check that user's score
+            response = users_api.get_user(self.client,
+                                          u_id1,
+                                          auth=auth1
+                                          )
+
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.OK
+            assert data['data']['score'] == 5
+
+            response = users_api.get_user(self.client,
+                                          u_id2,
+                                          auth=auth2
+                                          )
+
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.OK
+            assert data['data']['score'] == 1
+
+    def test_score_not_in_hof(self):
+        pass # TODO
