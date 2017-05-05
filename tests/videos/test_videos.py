@@ -168,6 +168,34 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert videos == []
 
+    def test_get_nonexistent_myVideos(self):
+        with self.client:
+            # Register two users
+            auth1, u_id1 = users_api.register_user_quick(self.client,
+                                                         email='gim@gim.com'
+                                                         )
+            auth2, u_id2 = users_api.register_user_quick(self.client,
+                                                         email='gim2@gim.com'
+                                                         )
+
+            v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth2
+                                                   )
+            
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 myVideos='yes'
+                                                 )
+
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']
+            
+            assert response.status_code == http.OK
+            assert len(videos) == 0          
+
     def test_get_all_by_popularity(self):
         with self.client:
             contents = ['a', 'b', 'c', 'd', 'e']
@@ -221,11 +249,26 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert returned_order == intended_order
 
+            # check whether default option persists
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='asdf'
+                                                 )
+            data = json.loads(response.data.decode())
+            
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert returned_order == intended_order
+
     def test_get_all_by_recent(self):
         with self.client:
             contents = ['a', 'b', 'c', 'd', 'e']
             auth1, u_id1 = users_api.register_user_quick(self.client)
-
+            
             video_ids = {}
             for content in contents:
                 v_id = videos_api.post_video_quick(self.client,
@@ -248,6 +291,94 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.OK
             assert returned_order == intended_order
+
+    def test_get_all_myVideos(self):
+        with self.client:
+            contents = ['a', 'b', 'c', 'd', 'e']
+            auth1, u_id1 = users_api.register_user_quick(self.client)
+            auth2, u_id2 = users_api.register_user_quick(self.client,
+                                                         email='gim2@gim.com'
+                                                         )
+
+            video_ids = {}
+            for content in contents:
+                v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+                video_ids[content] = v_id
+
+            v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth2
+                                                   )
+            
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 myVideos='yes'
+                                                 )
+
+            data = json.loads(response.data.decode())
+
+            intended_order = [video_ids[content] for content in reversed(contents)]
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert len(data['data']['videos']) == 5
+            assert returned_order == intended_order
+
+    def test_get_all_myVideos_against_popularity(self):
+        with self.client:
+            contents = ['a', 'b', 'c', 'd', 'e']
+            auth1, u_id1 = users_api.register_user_quick(self.client)
+            auth2, u_id2 = users_api.register_user_quick(self.client,
+                                                         email='gim2@gim.com'
+                                                         )
+
+            video_ids = {}
+            for content in contents:
+                v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+                video_ids[content] = v_id
+
+            v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth2
+                                                   )
+            
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='popularity',
+                                                 myVideos='yes'
+                                                 )
+
+            data = json.loads(response.data.decode())
+
+            intended_order = [video_ids[content] for content in reversed(contents)]
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert len(data['data']['videos']) == 5
+            assert returned_order == intended_order
+
+            # check persistence of default options for bad arguments; returns all videos
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth2,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 myVideos='asdf'
+                                                 )
+
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']
+            
+            assert response.status_code == http.OK
+            assert len(videos) == 6
 
     def test_get_with_lesser_limit(self):
         with self.client:

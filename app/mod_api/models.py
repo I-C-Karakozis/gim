@@ -159,28 +159,44 @@ class Video(db.Model):
         return Video.query.filter_by(v_id=_id).first()
 
     @staticmethod
-    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):
-        # filter videos by tags and geolocation
-        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
-        tag_filter = lambda : Video.tags.any(Tag.name.in_(tags)) # holy shit functional programming!!
-        geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
-        videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter(), geo_filter)) if tags else Video.query.filter(geo_filter)
+    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular', myVideos = 'no', u_id = 0):
+        # filter videos by user
+        if myVideos == 'yes': # default option: no
+            videos = Video.query.filter_by(u_id = u_id)
 
-        # order the videos        
-        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
-
-        # default to sort_by popularity
-        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
-        if sort_by == 'recent':
+            # sort by most recent
             order = Video.uploaded_on.desc()
+            videos = videos.order_by(order)
 
-        videos = videos.order_by(order)
+            # limit videos (6 displayed at a time)
+            videos = videos.limit(6)
 
-        # limit videos
-        videos = videos.limit(limit)
+            # offset the videos
+            videos = videos.offset(offset)
 
-        # offset the videos
-        videos = videos.offset(offset)
+        # filter videos by tags and geolocation
+        else: 
+            lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
+            tag_filter = lambda : Video.tags.any(Tag.name.in_(tags)) # holy shit functional programming!!
+            geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
+            videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter(), geo_filter)) if tags else Video.query.filter(geo_filter)
+
+            # order the videos        
+            videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
+
+            # default to sort_by popularity
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
+        
+            if sort_by == 'recent':
+                order = Video.uploaded_on.desc()
+
+            videos = videos.order_by(order)
+
+            # limit videos
+            videos = videos.limit(limit)
+
+            # offset the videos
+            videos = videos.offset(offset)
 
         return videos.all()
 
