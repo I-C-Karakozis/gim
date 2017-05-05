@@ -129,8 +129,9 @@ class User(Resource):
             'data': {
                 'user_id': user_id ,
                 'email': user.email ,
-                'registered_on': user.registered_on
-                'last_active_on': user.last_active_on
+                'registered_on': user.registered_on,
+                'last_active_on': user.last_active_on,
+                'score': 22
                 }
         }
         Returns 404 if no user with the given id was found.
@@ -160,10 +161,11 @@ class User(Resource):
                 response = {
                     'status': 'success',
                     'data': {
-                        'user_id': user_id ,
-                        'email': user.email ,
-                        'registered_on': user.registered_on ,
-                        'last_active_on': user.last_active_on
+                        'user_id': user_id,
+                        'email': user.email,
+                        'registered_on': user.registered_on,
+                        'last_active_on': user.last_active_on,
+                        'score': user.get_score()
                         }
                     }
                 return make_response(jsonify(response), 200)
