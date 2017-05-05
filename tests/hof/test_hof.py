@@ -313,3 +313,6 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.OK
             assert data['data']['score'] == 1
+
+    def test_score_not_in_hof(self):
+        pass # TODO
