@@ -167,12 +167,20 @@ class Video(db.Model):
         db.session.commit()
 
     def delete(self):
+        # update video owners base score
         user = User.query.filter_by(u_id = self.u_id).first()
         user.stored_score += self.net_votes()
         user.commit()
+        # update users' base scores who voted on this video
+        voters = User.query.join(Vote).filter(Vote.vid_id == self.v_id)
+        for voter in voters:
+            voter.stored_score += 1
+            voter.commit()
+        # delete votes associated with video
         expired_votes = Vote.query.filter_by(vid_id = self.v_id)
         for vote in expired_votes:
             vote.delete()
+        # delete the video
         db.session.delete(self)
         db.session.commit()
 
@@ -268,6 +276,8 @@ class HallOfFame(db.Model):
             winner = HallOfFame(video, net_votes)
             winner.commit(insert=True)
             video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+            user.stored_score += net_votes
+            user.commit()
         elif net_votes > last.score:
             last_filepath = [last.filepath]
             winner = HallOfFame(video, net_votes)
@@ -275,6 +285,8 @@ class HallOfFame(db.Model):
             video_client.delete_videos(last_filepath, is_hof=True)
             last.delete()
             video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+            user.stored_score += net_votes
+            user.commit()
 
         video_client.delete_videos(old_filepath)
         video.delete()
