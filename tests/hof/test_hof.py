@@ -264,3 +264,7 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
                                             )
 
             assert response.status_code == http.NOT_FOUND
+
+    def test_score_carryover(self):
+        with self.client:
+            
