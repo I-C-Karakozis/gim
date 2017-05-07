@@ -9,16 +9,6 @@ from app.mod_api.resources import validators
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
 
-def video_info(video, u_id):
-    return {
-        'video_id': video.v_id,
-        'uploaded_on': video.uploaded_on,
-        'tags': [t.name for t in video.tags],
-        'upvotes': len([vt for vt in video.votes if vt.upvote]),
-        'downvotes': len([vt for vt in video.votes if not vt.upvote]),
-        'user_vote': models.Vote.get_vote(u_id, video.v_id)
-        }
-
 class VideoFiles(Resource):
     """The VideoFiles endpoint is for retrieval of specific video files (see the Videos endpoint for metadata retrieval and manipulation).
     
@@ -86,7 +76,7 @@ class Video(Resource):
         video = models.Video.get_video_by_id(video_id)
 
         if video:
-            response = json_utils.gen_response(data=video_info(video, u_id))
+            response = json_utils.gen_response(data=json_utils.video_info(video, u_id))
             return make_response(jsonify(response), 200)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist')
@@ -193,7 +183,7 @@ class Videos(Resource):
     def get(self):
         """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
 
-        Request: GET /Videos?lat=22.0&lon=67.8&tag=t1&tag=t2&sortBy=popular&myVideos=yes
+        Request: GET /Videos?lat=22.0&lon=67.8&tag=t1&tag=t2&sortBy=popular
                  Authorization: Bearer auth_token
         Response: HTTP 200 OK
         {
@@ -226,7 +216,6 @@ class Videos(Resource):
         parser.add_argument('limit', type=int)
         parser.add_argument('offset', type=int)
         parser.add_argument('sortBy', type=str)
-        parser.add_argument('myVideos', type=str)
         args = parser.parse_args()
         
         lat = args['lat']
@@ -235,15 +224,14 @@ class Videos(Resource):
         limit = args.get('limit') if args.get('limit') else Videos.LIMIT 
         offset = args.get('offset') if args.get('offset') else 0
         sort_by = args.get('sortBy') if args.get('sortBy') else 'popular'
-        myVideos = args.get('myVideos') if args.get('myVideos') else 'no'
         
         # check for illegal query coordinates
         if lat > 90 or lat < -90 or lon > 180 or lon < -180:
             response = json_utils.gen_response(success=False, msg='Illegal coordinates entered')
             return make_response(jsonify(response), 400)
 
-        videos = models.Video.search(lat, lon, tags, min(limit, Videos.LIMIT), offset, sort_by, myVideos, u_id)
-        video_infos = [video_info(v, u_id) for v in videos]
+        videos = models.Video.search(lat, lon, tags, min(limit, Videos.LIMIT), offset, sort_by)
+        video_infos = [json_utils.video_info(v, u_id) for v in videos]
         response = json_utils.gen_response(data={'videos': video_infos})
         return make_response(jsonify(response), 200)
 

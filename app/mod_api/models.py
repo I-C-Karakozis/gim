@@ -30,6 +30,17 @@ class User(db.Model):
         self.registered_on = now
         self.last_active_on = now
 
+    def commit(self, insert = False):
+        now = datetime.datetime.now()
+        self.last_active_on = now
+        if insert:
+            db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
     def encode_auth_token(self):
         now = datetime.datetime.now()
         delta = datetime.timedelta(seconds=100000) # TODO: change
@@ -124,6 +135,7 @@ class Video(db.Model):
     tags = db.relationship('Tag', secondary=tags, backref=db.backref('videos', lazy='dynamic'))
     votes = db.relationship('Vote', backref='video', lazy='dynamic')
     filepath = db.Column(db.String(84), nullable=False)
+    #thumbnail_filepath = db.Column(db.String(84), nullable=False)
 
     def __init__(self, video, u_id, lat, lon):
         self.u_id = u_id
@@ -132,8 +144,14 @@ class Video(db.Model):
         self.last_edited_on = now
         self.lat = lat
         self.lon = lon
+
+        # handle video file
         self.filepath = video_client.get_filepath(video.read())
         video_client.upload_video(self.filepath, video)
+
+        # generate and handle video thumbnail
+        #thumbnail = VideoStream(self.filepath).get_frame_at_sec(5).image()
+        #self.thumbnail_filepath = 
 
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
@@ -159,44 +177,38 @@ class Video(db.Model):
         return Video.query.filter_by(v_id=_id).first()
 
     @staticmethod
-    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular', myVideos = 'no', u_id = 0):
-        # filter videos by user
-        if myVideos == 'yes': # default option: no
-            videos = Video.query.filter_by(u_id = u_id)
+    def get_videos_by_user_id(u_id):
+        videos = Video.query.filter_by(u_id=u_id) 
 
-            # sort by most recent
+        order = Video.uploaded_on.desc()
+        videos = videos.order_by(order)
+
+        return videos.all()       
+
+    @staticmethod
+    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):
+    
+        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
+        tag_filter = lambda : Video.tags.any(Tag.name.in_(tags)) # holy shit functional programming!!
+        geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
+        videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter(), geo_filter)) if tags else Video.query.filter(geo_filter)
+
+        # order the videos        
+        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
+
+        # default to sort_by popularity
+        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
+    
+        if sort_by == 'recent':
             order = Video.uploaded_on.desc()
-            videos = videos.order_by(order)
 
-            # limit videos (6 displayed at a time)
-            videos = videos.limit(6)
+        videos = videos.order_by(order)
 
-            # offset the videos
-            videos = videos.offset(offset)
+        # limit videos
+        videos = videos.limit(limit)
 
-        # filter videos by tags and geolocation
-        else: 
-            lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
-            tag_filter = lambda : Video.tags.any(Tag.name.in_(tags)) # holy shit functional programming!!
-            geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
-            videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter(), geo_filter)) if tags else Video.query.filter(geo_filter)
-
-            # order the videos        
-            videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
-
-            # default to sort_by popularity
-            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
-        
-            if sort_by == 'recent':
-                order = Video.uploaded_on.desc()
-
-            videos = videos.order_by(order)
-
-            # limit videos
-            videos = videos.limit(limit)
-
-            # offset the videos
-            videos = videos.offset(offset)
+        # offset the videos
+        videos = videos.offset(offset)
 
         return videos.all()
 

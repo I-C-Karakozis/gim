@@ -1,5 +1,6 @@
 from tests import GimTestCase
 from tests import user_helpers as api
+from tests import video_helpers as videos_api
 from tests import http_helpers as http
 
 import json
@@ -319,7 +320,76 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
 
             response = api.get_user(self.client,
                                        u_id = u_id,
-                                       auth = auth,
+                                       auth = auth
                                     )
             assert response.status_code == http.NOT_FOUND
+
+    def test_get_nonecistent_user_Videos(self):
+        with self.client:
+            # Register two users
+            auth1, u_id1 = api.register_user_quick(self.client,
+                                                         email='gim@gim.com'
+                                                         )
+            auth2, u_id2 = api.register_user_quick(self.client,
+                                                         email='gim2@gim.com'
+                                                         )
+
+            v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth2
+                                                   )
+            
+            response = api.get_user(self.client,
+                                       u_id = u_id1,
+                                       auth = auth1
+                                    )
+
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']
+            
+            assert response.status_code == http.OK
+            assert len(videos) == 0  
+
+    def test_get_all_user_Videos(self):
+        with self.client:
+            contents = ['a', 'b', 'c', 'd', 'e']
+            auth1, u_id1 = api.register_user_quick(self.client)
+            auth2, u_id2 = api.register_user_quick(self.client,
+                                                    email='gim2@gim.com'
+                                                    )
+
+            video_ids = {}
+            for content in contents:
+                v_id = videos_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+                video_ids[content] = v_id
+
+            v_id = videos_api.post_video_quick(self.client,
+                                                auth=auth2
+                                                )
+            
+            response = api.get_user(self.client,
+                                    u_id = u_id1,
+                                  auth = auth1
+                                    )
+
+            data = json.loads(response.data.decode())
+
+            intended_order = [video_ids[content] for content in reversed(contents)]
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert len(data['data']['videos']) == 5
+            assert returned_order == intended_order
+
+            response = api.get_user(self.client,
+                                       u_id = u_id2,
+                                       auth = auth2
+                                    )
+
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.OK
+            assert len(data['data']['videos']) == 1
+            assert v_id == data['data']['videos'][0]['video_id']
 

@@ -9,6 +9,7 @@ from pyftpdlib.servers import FTPServer
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 VIDEO_STORE = os.path.join(BASE_DIR, 'videos')
 HOF_STORE = os.path.join(BASE_DIR, 'videos/hof')
+THUMBNAIL_STORE = os.path.join(BASE_DIR, 'videos/thumbnails')
 
 class VideoServer:
     def __init__(self, host, port):
@@ -22,12 +23,19 @@ class VideoServer:
         # write-only user for posting videos
         authorizer.add_user('poster', 'password', VIDEO_STORE, perm='w')
 
-        # read-only user for searching videos
+        # read-only user for searching hof videos
         authorizer.add_user('hof_searcher', 'password', HOF_STORE, perm='r') 
-        # delete-only user for removing videos (script)
+        # delete-only user for removing hof videos (script)
         authorizer.add_user('hof_deleter', 'password', HOF_STORE, perm='d')
-        # write-only user for posting videos
+        # write-only user for posting hof videos
         authorizer.add_user('hof_poster', 'password', HOF_STORE, perm='w')
+
+        # read-only user for searching thumbnails
+        authorizer.add_user('thumb_searcher', 'password', THUMBNAIL_STORE, perm='r') 
+        # delete-only user for removing thumbnails
+        authorizer.add_user('thumb_deleter', 'password', THUMBNAIL_STORE, perm='d')
+        # write-only user for posting thumbnails
+        authorizer.add_user('thumb_poster', 'password', THUMBNAIL_STORE, perm='w')
 
         handler = FTPHandler
         handler.authorizer = authorizer
