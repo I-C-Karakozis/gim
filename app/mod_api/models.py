@@ -9,9 +9,9 @@ import math
 
 from app import app, db, flask_bcrypt
 from app import video_client
+
 from sqlalchemy import and_, func, case, desc
 
-# maybe move yo cofnig?
 HALL_OF_FAME_LIMIT = 10
 
 class User(db.Model):
@@ -135,9 +135,8 @@ class Video(db.Model):
     tags = db.relationship('Tag', secondary=tags, backref=db.backref('videos', lazy='dynamic'))
     votes = db.relationship('Vote', backref='video', lazy='dynamic')
     filepath = db.Column(db.String(84), nullable=False)
-    #thumbnail_filepath = db.Column(db.String(84), nullable=False)
 
-    def __init__(self, video, u_id, lat, lon):
+    def __init__(self, video, u_id, lat, lon, thumbnail):
         self.u_id = u_id
         now = datetime.datetime.now()
         self.uploaded_on = now
@@ -146,15 +145,18 @@ class Video(db.Model):
         self.lon = lon
 
         # handle video file
+        video.seek(0)
         self.filepath = video_client.get_filepath(video.read())
         video_client.upload_video(self.filepath, video)
 
-        # generate and handle video thumbnail
-        #thumbnail = VideoStream(self.filepath).get_frame_at_sec(5).image()
-        #self.thumbnail_filepath = 
+        # handle video thumbnail; same filepath with video, but in different folder
+        video_client.upload_thumbnail(self.filepath, thumbnail)
 
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
+
+    def retrieve_thumbnail(self):
+        return video_client.retrieve_thumbnails([self.filepath])[0]
 
     def add_tags(self, tags):
         for tag in tags:
@@ -169,8 +171,12 @@ class Video(db.Model):
         db.session.commit()
 
     def delete(self):
+        video_client.delete_videos([self.filepath])
         db.session.delete(self)
         db.session.commit()
+
+    def delete_thumbnail():
+        video_client.delete_thumbnails([self.filepath])
 
     @staticmethod
     def get_video_by_id(_id):
@@ -186,8 +192,7 @@ class Video(db.Model):
         return videos.all()       
 
     @staticmethod
-    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):
-    
+    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):    
         lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
         tag_filter = lambda : Video.tags.any(Tag.name.in_(tags)) # holy shit functional programming!!
         geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
@@ -247,13 +252,11 @@ class HallOfFame(db.Model):
         self.score = net_votes
         self.filepath = video.filepath
 
-        # update file system
-        # old_filepath =[video.filepath]
-        # video_client.upload_video(self.filepath, video_client.retrieve_videos([video.filepath])[0])        
-        # video_client.delete_videos(old_filepath)
-
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath], is_hof=True)[0]
+
+    def retrieve_thumbnail(self):
+        return video_client.retrieve_thumbnails([self.filepath])[0]
 
     def commit(self, insert = False):
         if insert:
@@ -261,37 +264,37 @@ class HallOfFame(db.Model):
         db.session.commit()
 
     def delete(self):
+        video_client.delete_videos([self.filepath], is_hof=True)
+        video_client.delete_thumbnails([self.filepath])
         db.session.delete(self)
-        db.session.commit()
+        db.session.commit()        
 
     @staticmethod
-    def add_to_hof_or_delete(video):
+    def add_to_hof_or_delete(videos):
         # measure score
-        video.retrieve()
-        expired_votes = Vote.query.filter_by(vid_id = video.v_id)
-        net_votes = sum([1 if vote.upvote else -1 for vote in expired_votes]) 
-        for vote in expired_votes:
-            vote.delete()
+        for video in videos:           
+            expired_votes = Vote.query.filter_by(vid_id = video.v_id)
+            net_votes = sum([1 if vote.upvote else -1 for vote in expired_votes]) 
+            for vote in expired_votes:
+                vote.delete()
 
-        # update HoF
-        last = HallOfFame.retrieve_last()
-        old_filepath =[video.filepath]
-        all_HoF = len(HallOfFame.sort_desc_and_retrieve_all())
+            # update HoF
+            last = HallOfFame.retrieve_last()
+            all_HoF = len(HallOfFame.sort_desc_and_retrieve_all())
 
-        if all_HoF < HALL_OF_FAME_LIMIT:
-            winner = HallOfFame(video, net_votes)
-            winner.commit(insert=True)
-            video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
-        elif net_votes > last.score:
-            last_filepath = [last.filepath]
-            winner = HallOfFame(video, net_votes)
-            winner.commit(insert = True)            
-            video_client.delete_videos(last_filepath, is_hof=True)
-            last.delete()
-            video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+            if all_HoF < HALL_OF_FAME_LIMIT:
+                winner = HallOfFame(video, net_votes)
+                winner.commit(insert=True)
+                video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+            elif net_votes > last.score:
+                winner = HallOfFame(video, net_votes)
+                winner.commit(insert=True)   
+                video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+                last.delete()            
+            else:
+                video.delete_thumbnail()
 
-        video_client.delete_videos(old_filepath)
-        video.delete()
+            video.delete()        
 
     @staticmethod
     def get_video_by_id(_id):

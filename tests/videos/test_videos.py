@@ -60,6 +60,15 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert response.data == contents
 
+            # GET on Thumbnails endpoint
+            response = videos_api.get_thumbnail(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.OK
+            # assert response.data == contents --> not sure how to test contents
+
             response = videos_api.get_video(self.client,
                                             v_id,
                                             auth=auth
@@ -80,6 +89,22 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             
             # GET on Videos (non-existent id)
             response = videos_api.get_video(self.client,
+                                            v_id=9001,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
+             # GET on VideoFiles endpoint
+            response = videos_api.get_video_file(self.client,
+                                            v_id=9001,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
+            # GET on Thumbnails endpoint
+            response = videos_api.get_thumbnail(self.client,
                                             v_id=9001,
                                             auth=auth
                                             )
@@ -535,6 +560,14 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.NOT_FOUND
 
+                        # GET on Thumbnails endpoint
+            response = videos_api.get_thumbnail(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
     def test_delete_not_owner(self):
         with self.client:
             # Register two users
@@ -567,6 +600,14 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             # GET on VideoFiles to make sure it is still there
             response = videos_api.get_video_file(self.client,
+                                            v_id,
+                                            auth=auth1
+                                            )
+
+            assert response.status_code == http.OK
+
+            # GET on Thumbnails endpoint
+            response = videos_api.get_thumbnail(self.client,
                                             v_id,
                                             auth=auth1
                                             )

@@ -14,10 +14,7 @@ def delete_expired_videos(threshold_datetime):
     # collect filepaths and video ids
     expired_videos = models.Video.query.filter(models.Video.uploaded_on < threshold_datetime)
     total_expired = len(expired_videos.all())
-
-    for video in expired_videos:
-        # delete votes and tag pairings of expired videos; update HoF too
-        models.HallOfFame.add_to_hof_or_delete(video)
+    models.HallOfFame.add_to_hof_or_delete(expired_videos)
 
     return total_expired
 

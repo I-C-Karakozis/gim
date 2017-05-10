@@ -68,6 +68,9 @@ def get_all_videos(client, auth, tags=[], **kwargs):
 def get_video_file(client, v_id, auth):
     return get(client, '/api/VideoFiles/%d' %v_id, auth)
 
+def get_thumbnail(client, v_id, auth):
+    return get(client, '/api/Thumbnails/%d' %v_id, auth)
+
 def upvote_video(client, v_id, auth):
     return patch_video(client,
                        v_id,

@@ -9,6 +9,9 @@ from app.mod_api.resources import validators
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
 
+import cv2
+import StringIO
+
 class VideoFiles(Resource):
     """The VideoFiles endpoint is for retrieval of specific video files (see the Videos endpoint for metadata retrieval and manipulation).
     
@@ -34,6 +37,36 @@ class VideoFiles(Resource):
 
         if video:
             vfile = send_file(video.retrieve(), mimetype='text/plain')
+            return make_response(vfile, 200)
+        else:
+            response = json_utils.gen_response(success=False, msg='Video does not exist')
+            return make_response(jsonify(response), 404)
+
+class Thumbnails(Resource):
+    """The Thumbnails endpoint is for retrieval of thumbnails of specific video files.
+    
+    This endpoint supports the following http requests:
+    get -- returns the thumbnail associated with the given video id; authentication token required
+
+    All requests require the client to pass the video id of the target video.
+    """
+
+    @auth.require_auth_token
+    @auth.require_empty_query_string
+    def get(self, video_id):
+        """Given a video id, return the thumbnail associated with it. The user must provide a valid authentication token.
+
+        Request: GET /Thumbnails/5
+                 Authorization: Bearer auth_token
+        Response: HTTP 200 OK
+                  thumbnail file
+        """
+        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        u_id = models.User.decode_auth_token(auth_token)
+        video = models.Video.get_video_by_id(video_id)
+
+        if video:
+            vfile = send_file(video.retrieve_thumbnail(), mimetype='text/plain')
             return make_response(vfile, 200)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist')
@@ -266,15 +299,25 @@ class Videos(Resource):
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
         
+        # collect video file and metadata
         vfile = request.files.get('file')
         post_data = request.form
         lat = post_data.get('lat')
         lon = post_data.get('lon')
         tags = post_data.getlist('tags')
 
-        video = models.Video(vfile, u_id, lat, lon)
+        # generate video thumbnail
+        cap = cv2.VideoCapture(vfile.read())
+        hello, img = cap.read()
+        thumb_buf = StringIO.StringIO()
+        thumb_buf.write(img)  
+
+        video = models.Video(vfile, u_id, lat, lon, thumb_buf)
         video.commit(insert=True)
         video.add_tags(tags)
+
+        thumb_buf.close()
+        cap.release() 
 
         response = json_utils.gen_response(data={'video_id': video.v_id})
         return make_response(jsonify(response), 200)
