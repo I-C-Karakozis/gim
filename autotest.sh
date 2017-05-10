@@ -4,8 +4,6 @@ if [ $# -eq 0 ]
 then TEST_DIR="tests"
 else TEST_DIR=$1
 fi
-rm ftp/videos/* &> /dev/null
-rm ftp/videos/hof/* &> /dev/null
 
 python ftp/ftpserver.py &> /dev/null &
 FTP_PID=$!
@@ -18,6 +16,3 @@ PURVIEW_MYSQL_URI=$MYSQL_URI PURVIEW_CSRF_SESSION_KEY=$CSRF_KEY PURVIEW_SECRET_K
 
 disown $FTP_PID
 kill -KILL $FTP_PID &> /dev/null
-
-rm ftp/videos/* &> /dev/null
-rm ftp/videos/hof/* &> /dev/null
