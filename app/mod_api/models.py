@@ -6,6 +6,8 @@ https://realpython.com/blog/python/token-based-authentication-with-flask
 import datetime
 import jwt
 import math
+import cv2
+import StringIO
 
 from app import app, db, flask_bcrypt
 from app import video_client
@@ -22,6 +24,7 @@ class User(db.Model):
     votes = db.relationship('Vote', backref='user', lazy='dynamic') 
     registered_on = db.Column(db.DateTime, nullable=False)
     last_active_on = db.Column(db.DateTime, nullable=False)
+    stored_score = db.Column(db.Integer, nullable=False)
 
     def __init__(self, email, password):
         self.email = email
@@ -29,6 +32,14 @@ class User(db.Model):
         now = datetime.datetime.now()
         self.registered_on = now
         self.last_active_on = now
+        self.stored_score = 0
+
+    def get_score(self):
+        votes = Vote.query.filter_by(u_id = self.u_id).count()
+        video_scores = db.session.query(func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).label('net_votes')).select_from(Video).join(Vote).filter(Video.u_id == self.u_id)
+        video_score = db.session.query(func.sum(video_scores.subquery().columns.net_votes)).scalar()
+        video_score = 0 if not video_score else video_score
+        return votes + video_score + self.stored_score
 
     def commit(self, insert = False):
         now = datetime.datetime.now()
@@ -136,7 +147,7 @@ class Video(db.Model):
     votes = db.relationship('Vote', backref='video', lazy='dynamic')
     filepath = db.Column(db.String(84), nullable=False)
 
-    def __init__(self, video, u_id, lat, lon, thumbnail):
+    def __init__(self, video, u_id, lat, lon):
         self.u_id = u_id
         now = datetime.datetime.now()
         self.uploaded_on = now
@@ -149,8 +160,15 @@ class Video(db.Model):
         self.filepath = video_client.get_filepath(video.read())
         video_client.upload_video(self.filepath, video)
 
-        # handle video thumbnail; same filepath with video, but in different folder
-        video_client.upload_thumbnail(self.filepath, thumbnail)
+        # generate video thumbnail; same filepath with video, but in different folder
+        cap = cv2.VideoCapture(video.read())
+        hello, img = cap.read()
+        thumb_buf = StringIO.StringIO()
+        thumb_buf.write(img) 
+        # question: should I store the StringIO object or should I get itis value and store it as a string? 
+        video_client.upload_thumbnail(self.filepath, thumb_buf)
+        thumb_buf.close()
+        cap.release()
 
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
@@ -165,12 +183,32 @@ class Video(db.Model):
                 self.tags.append(t)
         self.commit()
 
+    def net_votes(self):
+        return sum((1 if vote.upvote else -1 for vote in self.votes))
+
     def commit(self, insert=False):
         if insert:
             db.session.add(self)
         db.session.commit()
 
     def delete(self):
+        # update video owners base score
+        user = User.query.filter_by(u_id = self.u_id).first()
+        user.stored_score += self.net_votes()
+        user.commit()
+
+        # update users' base scores who voted on this video
+        voters = User.query.join(Vote).filter(Vote.vid_id == self.v_id)
+        for voter in voters:
+            voter.stored_score += 1
+            voter.commit()
+
+        # delete votes associated with video
+        expired_votes = Vote.query.filter_by(vid_id = self.v_id)
+        for vote in expired_votes:
+            vote.delete()
+
+        # delete the video
         video_client.delete_videos([self.filepath])
         db.session.delete(self)
         db.session.commit()
@@ -273,10 +311,8 @@ class HallOfFame(db.Model):
     def add_to_hof_or_delete(videos):
         # measure score
         for video in videos:           
-            expired_votes = Vote.query.filter_by(vid_id = video.v_id)
-            net_votes = sum([1 if vote.upvote else -1 for vote in expired_votes]) 
-            for vote in expired_votes:
-                vote.delete()
+            net_votes = video.net_votes() 
+            user = User.query.filter_by(u_id = video.u_id).first()
 
             # update HoF
             last = HallOfFame.retrieve_last()
@@ -286,11 +322,15 @@ class HallOfFame(db.Model):
                 winner = HallOfFame(video, net_votes)
                 winner.commit(insert=True)
                 video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
+                user.stored_score += net_votes
+                user.commit()
             elif net_votes > last.score:
                 winner = HallOfFame(video, net_votes)
                 winner.commit(insert=True)   
                 video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
-                last.delete()            
+                last.delete()
+                user.stored_score += net_votes
+                user.commit()            
             else:
                 video.delete_thumbnail()
 

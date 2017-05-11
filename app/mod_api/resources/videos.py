@@ -9,7 +9,6 @@ from app.mod_api.resources import validators
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
 
-import cv2
 import StringIO
 
 class VideoFiles(Resource):
@@ -304,20 +303,11 @@ class Videos(Resource):
         post_data = request.form
         lat = post_data.get('lat')
         lon = post_data.get('lon')
-        tags = post_data.getlist('tags')
+        tags = post_data.getlist('tags')       
 
-        # generate video thumbnail
-        cap = cv2.VideoCapture(vfile.read())
-        hello, img = cap.read()
-        thumb_buf = StringIO.StringIO()
-        thumb_buf.write(img)  
-
-        video = models.Video(vfile, u_id, lat, lon, thumb_buf)
+        video = models.Video(vfile, u_id, lat, lon)
         video.commit(insert=True)
-        video.add_tags(tags)
-
-        thumb_buf.close()
-        cap.release() 
+        video.add_tags(tags) 
 
         response = json_utils.gen_response(data={'video_id': video.v_id})
         return make_response(jsonify(response), 200)

@@ -104,7 +104,7 @@ class User(Resource):
     def get(self, user_id):
         """Returns all information of the user with the id corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
         
-        Request: GET /Users
+        Request: GET /Users/5
                 Authorizaton: Bearer auth_token
         Response: HTTP 200 OK
         {
@@ -114,6 +114,7 @@ class User(Resource):
                 'email': user.email ,
                 'registered_on': user.registered_on ,
                 'last_active_on': user.last_active_on ,
+                'score': 22,
                 'videos': 
                         [
                             {
@@ -150,6 +151,7 @@ class User(Resource):
                     'email': user.email ,
                     'registered_on': user.registered_on ,
                     'last_active_on': user.last_active_on ,
+                    'score': user.get_score(),
                     'videos': video_infos
                     }
             response = json_utils.gen_response(data=data)
@@ -164,7 +166,7 @@ class User(Resource):
     def delete(self, user_id):
         """Deletes user with the id corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
         
-        Request: DELETE /Users
+        Request: DELETE /Users/5
                 Authorizaton: Bearer auth_token
         {
             'password': 'password'

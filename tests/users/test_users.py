@@ -1,6 +1,6 @@
 from tests import GimTestCase
 from tests import user_helpers as api
-from tests import video_helpers as videos_api
+from tests import video_helpers as video_api
 from tests import http_helpers as http
 
 import json
@@ -334,7 +334,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                                          email='gim2@gim.com'
                                                          )
 
-            v_id = videos_api.post_video_quick(self.client,
+            v_id = video_api.post_video_quick(self.client,
                                                    auth=auth2
                                                    )
             
@@ -359,12 +359,12 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
 
             video_ids = {}
             for content in contents:
-                v_id = videos_api.post_video_quick(self.client,
+                v_id = video_api.post_video_quick(self.client,
                                                    auth=auth1
                                                    )
                 video_ids[content] = v_id
 
-            v_id = videos_api.post_video_quick(self.client,
+            v_id = video_api.post_video_quick(self.client,
                                                 auth=auth2
                                                 )
             
