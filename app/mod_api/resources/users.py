@@ -72,7 +72,6 @@ class User(Resource):
                 return make_response(jsonify(response), 401)
 
             user = models.User.query.get_or_404(user_id) 
-         
             passed_old_password = post_data.get('password')
             passed_new_password = post_data.get('new_password')
 
@@ -126,6 +125,7 @@ class User(Resource):
                             }, 
                             ...
                         ]
+
                 }
         }
         Returns 404 if no user with the given id was found.

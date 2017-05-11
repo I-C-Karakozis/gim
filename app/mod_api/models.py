@@ -14,6 +14,7 @@ from app import video_client
 
 from sqlalchemy import and_, func, case, desc
 
+
 HALL_OF_FAME_LIMIT = 10
 
 class User(db.Model):
@@ -52,6 +53,7 @@ class User(db.Model):
         db.session.delete(self)
         db.session.commit()
 
+
     def encode_auth_token(self):
         now = datetime.datetime.now()
         delta = datetime.timedelta(seconds=100000) # TODO: change
@@ -65,6 +67,11 @@ class User(db.Model):
             app.config.get('SECRET_KEY'),
             algorithm='HS256'
             )
+
+    def commit(self, insert=False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
 
     @staticmethod
     def decode_auth_token(auth_token):
@@ -208,6 +215,7 @@ class Video(db.Model):
         for vote in expired_votes:
             vote.delete()
 
+
         # delete the video
         video_client.delete_videos([self.filepath])
         db.session.delete(self)
@@ -335,6 +343,7 @@ class HallOfFame(db.Model):
                 video.delete_thumbnail()
 
             video.delete()        
+
 
     @staticmethod
     def get_video_by_id(_id):
