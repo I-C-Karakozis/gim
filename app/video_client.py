@@ -47,9 +47,12 @@ def retrieve_thumbnails(thumbnails):
         res = []
         for thumbnail in thumbnails:
             r = StringIO.StringIO()
-            ftp.retrbinary('RETR %s' % thumbnail, r.write)
-            r.seek(0)
-            res.append(r)
+            try:
+                ftp.retrbinary('RETR %s' % thumbnail, r.write)
+                r.seek(0)
+                res.append(r)
+            except:
+                res.append(r)
         return res
 
 def delete_thumbnails(thumbnails):
