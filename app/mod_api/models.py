@@ -16,6 +16,7 @@ from sqlalchemy import and_, func, case, desc
 
 
 HALL_OF_FAME_LIMIT = 10
+FRAMES_PER_SECOND = 23
 
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -169,7 +170,9 @@ class Video(db.Model):
 
         # generate video thumbnail; same filepath with video, but in different folder
         cap = cv2.VideoCapture(video.read())
-        _, img = cap.read()
+        # get frame at second 1
+        for i in range(FRAMES_PER_SECOND):
+            _, img = cap.read()
         thumb_buf = StringIO.StringIO()
         thumb_buf.write(img) 
         video_client.upload_thumbnail(self.filepath, thumb_buf)
@@ -179,8 +182,8 @@ class Video(db.Model):
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
 
-    def retrieve_thumbnail(self):
-        return video_client.retrieve_thumbnails([self.filepath])[0]
+    def retrieve_thumbnail(self):        
+        return video_client.retrieve_thumbnail(self.filepath)
 
     def add_tags(self, tags):
         for tag in tags:
@@ -301,7 +304,7 @@ class HallOfFame(db.Model):
         return video_client.retrieve_videos([self.filepath], is_hof=True)[0]
 
     def retrieve_thumbnail(self):
-        return video_client.retrieve_thumbnails([self.filepath])[0]
+        return video_client.retrieve_thumbnail(self.filepath)[0]
 
     def commit(self, insert = False):
         if insert:
