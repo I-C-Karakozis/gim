@@ -21,8 +21,8 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
 
             data = json.loads(response.data.decode())
-            assert data['data']['email'] =='goofy@goober.com'
-
+            assert data['data']['email'] == 'goofy@goober.com'
+            assert data['data']['score'] == 0
             registered_on = datetime.strptime(data['data']['registered_on'], '%a, %d %b %Y %H:%M:%S %Z')
             response = api.get_user(self.client,
                                     u_id = u_id,
@@ -68,6 +68,70 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
 
             data = json.loads(response.data.decode())
             assert response.status_code == http.UNAUTH
+
+    def test_get_score(self):
+        with self.client:
+            auth1, u_id1 = api.register_user_quick(self.client,
+                                                   email="gim@gim.com"
+                                                   )
+            auth2, u_id2 = api.register_user_quick(self.client,
+                                                   email="gim2@gim.com"
+                                                   )
+
+            # user 1 posts video
+            v_id = video_api.post_video_quick(self.client,
+                                              auth=auth1
+                                              )
+
+            # user 2 upvotes
+            video_api.upvote_video(self.client,
+                                   v_id,
+                                   auth=auth2
+                                   )
+
+            response = api.get_user(self.client,
+                                    u_id1,
+                                    auth=auth1
+                                    )
+
+            # score should be 1 (1 upvote, 0 votes)
+            data = json.loads(response.data.decode())
+            assert response.status_code == http.OK
+            assert data['data']['score'] == 1
+
+            # user 1 upvotes
+            video_api.upvote_video(self.client,
+                                   v_id,
+                                   auth=auth1
+                                   )
+            
+            response = api.get_user(self.client,
+                                    u_id1,
+                                    auth=auth1
+                                    )
+            
+            data = json.loads(response.data.decode())
+
+            # score should be 3 (2 upvotes, 1 vote)
+            assert response.status_code == http.OK
+            assert data['data']['score'] == 3
+
+            # user 2 downvotes
+            video_api.downvote_video(self.client,
+                                     v_id,
+                                     auth=auth2
+                                     )
+
+            response = api.get_user(self.client,
+                                    u_id1,
+                                    auth=auth1
+                                    )
+
+            data = json.loads(response.data.decode())
+
+            # score should be 1 (1 upvote, 1 downvote, 1 vote)
+            assert response.status_code == http.OK
+            assert data['data']['score'] == 1
 
     def test_delete_valid(self):
         with self.client:

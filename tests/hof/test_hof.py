@@ -112,7 +112,7 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
             # register users
             auth1, u_id1 = users_api.register_user_quick(self.client, email='gim@gim.com')
             auth2, u_id2 = users_api.register_user_quick(self.client, email='gim2@gim2.com')
-           
+            
             # POST to Videos endpoint
             v_id = videos_api.post_video_quick(self.client, auth=auth1)
 
@@ -212,7 +212,7 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
             response = hof_api.get_all_hof_videos(self.client, auth)
 
             assert response.status_code == http.OK
-       
+            
             # create 11th top video w/ 11 upvotes
             v_id = videos_api.post_video_quick(self.client, auth=auth)            
             videos_api.upvote_video(self.client, v_id, auth)
@@ -310,3 +310,4 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
 
     def test_score_not_in_hof(self):
         pass # TODO
+
