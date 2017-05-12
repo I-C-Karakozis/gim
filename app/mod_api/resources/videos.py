@@ -63,8 +63,12 @@ class Thumbnails(Resource):
         video = models.Video.get_video_by_id(video_id)
 
         if video:
-            vfile = send_file(video.retrieve_thumbnail(), mimetype='text/plain')
-            return make_response(vfile, 200)
+            exists, thumbnail = video.retrieve_thumbnail()
+            vfile = send_file(thumbnail, mimetype='text/plain')
+            if exists:
+                return make_response(vfile, 200)
+            else:
+                return make_response({}, 204)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist')
             return make_response(jsonify(response), 404)
