@@ -162,10 +162,9 @@ class Video(db.Model):
 
         # generate video thumbnail; same filepath with video, but in different folder
         cap = cv2.VideoCapture(video.read())
-        hello, img = cap.read()
+        _, img = cap.read()
         thumb_buf = StringIO.StringIO()
         thumb_buf.write(img) 
-        # question: should I store the StringIO object or should I get itis value and store it as a string? 
         video_client.upload_thumbnail(self.filepath, thumb_buf)
         thumb_buf.close()
         cap.release()

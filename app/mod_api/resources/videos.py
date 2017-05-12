@@ -31,7 +31,6 @@ class VideoFiles(Resource):
                   video file
         """
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
-        u_id = models.User.decode_auth_token(auth_token)
         video = models.Video.get_video_by_id(video_id)
 
         if video:
@@ -61,7 +60,6 @@ class Thumbnails(Resource):
                   thumbnail file
         """
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
-        u_id = models.User.decode_auth_token(auth_token)
         video = models.Video.get_video_by_id(video_id)
 
         if video:

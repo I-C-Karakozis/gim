@@ -36,7 +36,6 @@ class HallOfFameFiles(Resource):
                   hof video file
         """
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
-        u_id = models.User.decode_auth_token(auth_token)
         video = models.HallOfFame.get_video_by_id(video_id)
 
         if video:
@@ -66,7 +65,6 @@ class HallOfFameThumbnails(Resource):
                   thumbnail file
         """
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
-        u_id = models.User.decode_auth_token(auth_token)
         video = models.HallOfFame.get_video_by_id(video_id)
 
         if video:
