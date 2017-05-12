@@ -12,10 +12,12 @@ api_v1 = Api(mod_api)
 api_v1.add_resource(videos.Videos, '/Videos')
 api_v1.add_resource(videos.Video, '/Videos/<int:video_id>')
 api_v1.add_resource(videos.VideoFiles, '/VideoFiles/<int:video_id>')
+api_v1.add_resource(videos.Thumbnails, '/Thumbnails/<int:video_id>')
 
 # hall of fame routes
 api_v1.add_resource(hof.HallOfFame, '/HallOfFame')
 api_v1.add_resource(hof.HallOfFameFiles, '/HallOfFameFiles/<int:video_id>')
+api_v1.add_resource(hof.HallOfFameThumbnails, '/HallOfFameThumbnails/<int:video_id>')
 
 # user routes
 api_v1.add_resource(users.Users, '/Users')

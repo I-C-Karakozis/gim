@@ -42,17 +42,12 @@ class TestDeleteExpiredVideos(GimTestCase.GimFreshDBTestCase):
 
             # POST to Videos endpoint
             v_id = videos_api.post_video_quick(self.client,
-                                                auth=auth
+                                                auth=auth,
+                                                content='abba'
                                                 )
-            response = videos_api.post_video(self.client, auth, 
-                                            video=StringIO.StringIO('yannis'),
-                                            tags=['the', 'sitting', 'dead'],
-                                            lat=0.0,
-                                            lon=0.0
-                                            )
-
-            data = json.loads(response.data.decode())
-            v_id2 = data['data']['video_id']
+            v_id2 = videos_api.post_video_quick(self.client,
+                                                auth=auth, content='ejkbefb2e'
+                                                )
             
             cron.delete_expired()
 

@@ -60,6 +60,15 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert response.data == contents
 
+            # GET on Thumbnails endpoint
+            response = videos_api.get_thumbnail(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.OK
+            # assert response.data == contents --> not sure how to test contents
+
             response = videos_api.get_video(self.client,
                                             v_id,
                                             auth=auth
@@ -80,6 +89,22 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             
             # GET on Videos (non-existent id)
             response = videos_api.get_video(self.client,
+                                            v_id=9001,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
+             # GET on VideoFiles endpoint
+            response = videos_api.get_video_file(self.client,
+                                            v_id=9001,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
+            # GET on Thumbnails endpoint
+            response = videos_api.get_thumbnail(self.client,
                                             v_id=9001,
                                             auth=auth
                                             )
@@ -166,7 +191,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             videos = data['data']['videos']
             
             assert response.status_code == http.OK
-            assert videos == []
+            assert videos == []   
 
     def test_get_all_by_popularity(self):
         with self.client:
@@ -221,11 +246,26 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert returned_order == intended_order
 
+            # check whether default option persists
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth1,
+                                                 tags=[],
+                                                 lat=0.0,
+                                                 lon=0.0,
+                                                 sortBy='asdf'
+                                                 )
+            data = json.loads(response.data.decode())
+            
+            returned_order = [x['video_id'] for x in data['data']['videos']]
+
+            assert response.status_code == http.OK
+            assert returned_order == intended_order
+
     def test_get_all_by_recent(self):
         with self.client:
             contents = ['a', 'b', 'c', 'd', 'e']
             auth1, u_id1 = users_api.register_user_quick(self.client)
-
+            
             video_ids = {}
             for content in contents:
                 v_id = videos_api.post_video_quick(self.client,
@@ -520,6 +560,14 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.NOT_FOUND
 
+                        # GET on Thumbnails endpoint
+            response = videos_api.get_thumbnail(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
     def test_delete_not_owner(self):
         with self.client:
             # Register two users
@@ -552,6 +600,14 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             # GET on VideoFiles to make sure it is still there
             response = videos_api.get_video_file(self.client,
+                                            v_id,
+                                            auth=auth1
+                                            )
+
+            assert response.status_code == http.OK
+
+            # GET on Thumbnails endpoint
+            response = videos_api.get_thumbnail(self.client,
                                             v_id,
                                             auth=auth1
                                             )

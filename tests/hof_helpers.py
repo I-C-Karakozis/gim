@@ -9,3 +9,6 @@ def get_all_hof_videos(client, auth):
 
 def get_video_file(client, hof_id, auth):
     return get(client, '/api/HallOfFameFiles/%d' %hof_id, auth)
+
+def get_thumbnail(client, hof_id, auth):
+    return get(client, '/api/HallOfFameThumbnails/%d' %hof_id, auth)

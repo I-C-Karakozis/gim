@@ -36,7 +36,6 @@ class HallOfFameFiles(Resource):
                   hof video file
         """
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
-        u_id = models.User.decode_auth_token(auth_token)
         video = models.HallOfFame.get_video_by_id(video_id)
 
         if video:
@@ -44,6 +43,35 @@ class HallOfFameFiles(Resource):
             return make_response(vfile, 200)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist in the Hallf Of Fame.')
+            return make_response(jsonify(response), 404)
+
+class HallOfFameThumbnails(Resource):
+    """The HallOfFameThumbnails endpoint is for retrieval of thumbnails of specific hof video files.
+    
+    This endpoint supports the following http requests:
+    get -- returns the thumbnail associated with the given hof video id; authentication token required
+
+    All requests require the client to pass the hof video id of the target video.
+    """
+
+    @auth.require_auth_token
+    @auth.require_empty_query_string
+    def get(self, video_id):
+        """Given a video id, return the thumbnail associated with it. The user must provide a valid authentication token.
+
+        Request: GET /Thumbnails/5
+                 Authorization: Bearer auth_token
+        Response: HTTP 200 OK
+                  thumbnail file
+        """
+        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        video = models.HallOfFame.get_video_by_id(video_id)
+
+        if video:
+            vfile = send_file(video.retrieve_thumbnail(), mimetype='text/plain')
+            return make_response(vfile, 200)
+        else:
+            response = json_utils.gen_response(success=False, msg='Video does not exist')
             return make_response(jsonify(response), 404)
 
 class HallOfFame(Resource):

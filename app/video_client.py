@@ -39,6 +39,31 @@ def upload_video(video, fp, is_hof=False):
             ftp.login('poster', 'password') # TODO: move creds to config.py
         ftp.storbinary('STOR %s' % video, fp)
 
+
+
+def retrieve_thumbnails(thumbnails):
+    with FTPClient('127.0.0.1', '8888') as ftp: # TODO: move to config.py
+        ftp.login('thumb_searcher', 'password')
+        res = []
+        for thumbnail in thumbnails:
+            r = StringIO.StringIO()
+            ftp.retrbinary('RETR %s' % thumbnail, r.write)
+            r.seek(0)
+            res.append(r)
+        return res
+
+def delete_thumbnails(thumbnails):
+    with FTPClient('127.0.0.1', '8888') as ftp: # TODO: move to config.py
+        ftp.login('thumb_deleter', 'password')
+        for thumbnail in thumbnails:
+            ftp.delete(thumbnail)
+
+def upload_thumbnail(thumbnail, fp):
+    fp.seek(0)
+    with FTPClient('127.0.0.1', '8888') as ftp: # TODO: move to config.py
+        ftp.login('thumb_poster', 'password')
+        ftp.storbinary('STOR %s' % thumbnail, fp)
+
 class FTPClient:
     def __init__(self, host, port):
         self.ftp = ftplib.FTP()

@@ -9,15 +9,7 @@ from app.mod_api.resources import validators
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
 
-def video_info(video, u_id):
-    return {
-        'video_id': video.v_id,
-        'uploaded_on': video.uploaded_on,
-        'tags': [t.name for t in video.tags],
-        'upvotes': len([vt for vt in video.votes if vt.upvote]),
-        'downvotes': len([vt for vt in video.votes if not vt.upvote]),
-        'user_vote': models.Vote.get_vote(u_id, video.v_id)
-        }
+import StringIO
 
 class VideoFiles(Resource):
     """The VideoFiles endpoint is for retrieval of specific video files (see the Videos endpoint for metadata retrieval and manipulation).
@@ -39,11 +31,39 @@ class VideoFiles(Resource):
                   video file
         """
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
-        u_id = models.User.decode_auth_token(auth_token)
         video = models.Video.get_video_by_id(video_id)
 
         if video:
             vfile = send_file(video.retrieve(), mimetype='text/plain')
+            return make_response(vfile, 200)
+        else:
+            response = json_utils.gen_response(success=False, msg='Video does not exist')
+            return make_response(jsonify(response), 404)
+
+class Thumbnails(Resource):
+    """The Thumbnails endpoint is for retrieval of thumbnails of specific video files.
+    
+    This endpoint supports the following http requests:
+    get -- returns the thumbnail associated with the given video id; authentication token required
+
+    All requests require the client to pass the video id of the target video.
+    """
+
+    @auth.require_auth_token
+    @auth.require_empty_query_string
+    def get(self, video_id):
+        """Given a video id, return the thumbnail associated with it. The user must provide a valid authentication token.
+
+        Request: GET /Thumbnails/5
+                 Authorization: Bearer auth_token
+        Response: HTTP 200 OK
+                  thumbnail file
+        """
+        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        video = models.Video.get_video_by_id(video_id)
+
+        if video:
+            vfile = send_file(video.retrieve_thumbnail(), mimetype='text/plain')
             return make_response(vfile, 200)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist')
@@ -86,7 +106,7 @@ class Video(Resource):
         video = models.Video.get_video_by_id(video_id)
 
         if video:
-            response = json_utils.gen_response(data=video_info(video, u_id))
+            response = json_utils.gen_response(data=json_utils.video_info(video, u_id))
             return make_response(jsonify(response), 200)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist')
@@ -241,7 +261,7 @@ class Videos(Resource):
             return make_response(jsonify(response), 400)
 
         videos = models.Video.search(lat, lon, tags, min(limit, Videos.LIMIT), offset, sort_by)
-        video_infos = [video_info(v, u_id) for v in videos]
+        video_infos = [json_utils.video_info(v, u_id) for v in videos]
         response = json_utils.gen_response(data={'videos': video_infos})
         return make_response(jsonify(response), 200)
 
@@ -276,15 +296,16 @@ class Videos(Resource):
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
         
+        # collect video file and metadata
         vfile = request.files.get('file')
         post_data = request.form
         lat = post_data.get('lat')
         lon = post_data.get('lon')
-        tags = post_data.getlist('tags')
+        tags = post_data.getlist('tags')       
 
         video = models.Video(vfile, u_id, lat, lon)
         video.commit(insert=True)
-        video.add_tags(tags)
+        video.add_tags(tags) 
 
         response = json_utils.gen_response(data={'video_id': video.v_id})
         return make_response(jsonify(response), 200)

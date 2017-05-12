@@ -14,8 +14,7 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
     def test_get_hof_video(self):
         with self.client:
             # register a user
-            auth, u_id = users_api.register_user_quick(self.client)
-            
+            auth, u_id = users_api.register_user_quick(self.client)            
             contents = "akfdhlkjghkjghdsglj"
            
             # POST to Videos endpoint
@@ -67,28 +66,13 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert response.data == contents
 
-    def test_get_hof_video_file(self):
-        with self.client:
-            contents = "akfdhlkjghkjghdsglj"
+            # test thumbnail has not been deleted
+            response = hof_api.get_thumbnail(self.client,
+                                            hof_id,
+                                            auth=auth
+                                            )
 
-            # register a user
-            auth, u_id = users_api.register_user_quick(self.client)
-            
-            # POST to Videos endpoint
-            response = videos_api.post_video(self.client,
-                                             auth=auth,
-                                             video=StringIO.StringIO(contents),
-                                             tags=[],
-                                             lat=0.0,
-                                             lon=0.0,
-                                             )
-
-            data = json.loads(response.data.decode())
-            v_id = data['data']['video_id']
-
-            cron.delete_expired()
-
-            
+            assert response.status_code == http.OK  
 
     def test_get_empty_hof(self):
         with self.client:
@@ -128,7 +112,7 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
             # register users
             auth1, u_id1 = users_api.register_user_quick(self.client, email='gim@gim.com')
             auth2, u_id2 = users_api.register_user_quick(self.client, email='gim2@gim2.com')
-           
+            
             # POST to Videos endpoint
             v_id = videos_api.post_video_quick(self.client, auth=auth1)
 
@@ -228,13 +212,9 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
             response = hof_api.get_all_hof_videos(self.client, auth)
 
             assert response.status_code == http.OK
-
-            # get old
-           
-            # POST to Videos endpoint
-            v_id = videos_api.post_video_quick(self.client, auth=auth)
-
+            
             # create 11th top video w/ 11 upvotes
+            v_id = videos_api.post_video_quick(self.client, auth=auth)            
             videos_api.upvote_video(self.client, v_id, auth)
             for user in auths:
                 videos_api.upvote_video(self.client, v_id, user)
@@ -246,6 +226,7 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
             videos = data['data']['videos']
+            hof_id = videos[0]['video_id']
 
             assert len(videos) == CAP
             assert videos[0]['score'] == CAP + 1
@@ -262,8 +243,21 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
                                             v_id,
                                             auth=auth
                                             )
-
             assert response.status_code == http.NOT_FOUND
+
+            # test thumbnail has not been deleted
+            response = hof_api.get_thumbnail(self.client,
+                                            hof_id,
+                                            auth=auth
+                                            )
+            assert response.status_code == http.OK
+
+            # test hof video has been uploaded
+            response = hof_api.get_video_file(self.client,
+                                            hof_id,
+                                            auth=auth
+                                            )
+            assert response.status_code == http.OK
 
     def test_score_carryover(self):
         with self.client:
@@ -316,3 +310,4 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
 
     def test_score_not_in_hof(self):
         pass # TODO
+
