@@ -168,20 +168,21 @@ class Video(db.Model):
         video.seek(0)
         self.filepath = video_client.get_filepath(video.read())
         video_client.upload_video(self.filepath, video)
-
+        
         # generate video thumbnail; same filepath with video, but in different folder
         video.seek(0)
-        video.save('temp.mov')
-        cap = cv2.VideoCapture('temp.mov')
-        # get frame at second 1
-        _, img = cap.read()
-        print _,img
-        thumb_buf = StringIO.StringIO()
-        thumb_buf.write(img) 
-        video_client.upload_thumbnail(self.filepath, thumb_buf)
-        thumb_buf.close()
-        cap.release()
-        os.system('rm temp.mov')
+        video.save('temp.avi')
+        image = video_to_frames('temp.avi')
+        # thumbnail = image_to_thumbs(image)
+        video_client.upload_thumbnail(self.filepath, image)
+        # # get frame at second 1
+        # _, img = cap.read()
+
+        # thumb_buf = StringIO.StringIO()
+        # thumb_buf.write(img) 
+        # thumb_buf.close()
+        # cap.release()
+        os.system('rm temp.avi')
 
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
@@ -402,4 +403,31 @@ def boxUser(lat, lon):
     # is comprised of the ocean and a couple of fringe islandss
 
     return lat_max, lat_min, lon_max, lon_min
+
+def video_to_frames(video_filename):
+    """Extract frames from video"""
+    cap = cv2.VideoCapture(video_filename)
+    if not cap.isOpened():
+        cap.open(video_filename)
+    if cap.isOpened():
+        success, image = cap.read()
+        if success:
+            return image
+        else:
+            print 'error2'
+    else:
+        print 'error1'
+    return None
+
+def image_to_thumbs(img):
+    """Create thumbs from image"""
+    height, width, channels = img.shape
+    thumbs = {"original": img}
+    sizes = [640, 320, 160]
+    for size in sizes:
+        if (width >= size):
+            r = (size + 0.0) / width
+            max_size = (size, int(height * r))
+            thumbs[str(size)] = cv2.resize(img, max_size, interpolation=cv2.INTER_AREA)
+    return thumbs
 
