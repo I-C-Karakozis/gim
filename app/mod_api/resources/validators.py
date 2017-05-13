@@ -10,9 +10,7 @@ class VideoUploadForm(FlaskForm):
     class Meta:
         csrf = False
     file = FileField('file', validators=[
-            FileRequired(), FileAllowed(['mov'], '.mov files only')])
-    # lat = FloatField('lat', validators=[InputRequired()])
-    # lon = FloatField('lon', validators=[InputRequired()])
+            FileRequired(), FileAllowed(['mov', '3gp', 'mp4'], '.mov files only')]) 
     lat = FloatField('lat', validators = [InputRequired(), NumberRange(min=-90, max=90)])
     lon = FloatField('lon', validators = [InputRequired(), NumberRange(min=-180, max=180)])
 

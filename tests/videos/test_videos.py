@@ -31,6 +31,78 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             assert v_id > 0
 
+    def test_post_correct_android_names(self):
+        with self.client:
+            contents = "akfdhlkjghkjghdsglj"
+            tags = ['this', 'is', 'testing']
+
+            # register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST to Videos endpoint
+            response = videos_api.post_video(self.client,
+                                             auth=auth,
+                                             video=StringIO.StringIO(contents),
+                                             tags=tags,
+                                             lat=0.0,
+                                             lon=0.0,
+                                             filename='video.mp4'
+                                             )
+
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            v_id = data['data']['video_id']
+
+            assert v_id > 0
+
+            response = videos_api.post_video(self.client,
+                                             auth=auth,
+                                             video=StringIO.StringIO(contents),
+                                             tags=tags,
+                                             lat=0.0,
+                                             lon=0.0,
+                                             filename='video.3gp'
+                                             )
+
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            v_id = data['data']['video_id']
+
+            assert v_id > 0
+
+    def test_post_incorrect_android_names(self):
+        with self.client:
+            contents = "akfdhlkjghkjghdsglj"
+            tags = ['this', 'is', 'testing']
+
+            # register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST to Videos endpoint
+            response = videos_api.post_video(self.client,
+                                             auth=auth,
+                                             video=StringIO.StringIO(contents),
+                                             tags=tags,
+                                             lat=0.0,
+                                             lon=0.0,
+                                             filename='video'
+                                             )
+
+            assert response.status_code == http.BAD_REQ
+
+            response = videos_api.post_video(self.client,
+                                             auth=auth,
+                                             video=StringIO.StringIO(contents),
+                                             tags=tags,
+                                             lat=0.0,
+                                             lon=0.0,
+                                             filename='video.asdf'
+                                             )
+
+            assert response.status_code == http.BAD_REQ
+
     def test_get(self):
         with self.client:
             contents = "akfdhlkjghkjghdsglj"
