@@ -179,7 +179,7 @@ class Video(db.Model):
         thumb_buf = StringIO.StringIO()
         thumb_buf.write(img) 
         video_client.upload_thumbnail(self.filepath, thumb_buf)
-        thumb_buf.cloe()
+        thumb_buf.close()
         cap.release()
 
     def retrieve(self):
