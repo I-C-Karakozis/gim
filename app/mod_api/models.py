@@ -170,19 +170,17 @@ class Video(db.Model):
         video_client.upload_video(self.filepath, video)
         
         # generate video thumbnail; same filepath with video, but in different folder
-        video.seek(0)
-        video.save('temp.avi')
-        image = video_to_frames('temp.avi')
+        # video.seek(0)
+        # video.save('temp.avi')
+        # image = video_to_frames('temp.avi')
         # thumbnail = image_to_thumbs(image)
-        video_client.upload_thumbnail(self.filepath, image)
-        # # get frame at second 1
-        # _, img = cap.read()
-
-        # thumb_buf = StringIO.StringIO()
-        # thumb_buf.write(img) 
-        # thumb_buf.close()
-        # cap.release()
-        os.system('rm temp.avi')
+        cap = cv2.VideoCapture(video.read())
+        _, img = cap.read()
+        thumb_buf = StringIO.StringIO()
+        thumb_buf.write(img) 
+        video_client.upload_thumbnail(self.filepath, thumb_buf)
+        thumb_buf.cloe()
+        cap.release()
 
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
