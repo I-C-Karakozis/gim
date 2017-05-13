@@ -68,7 +68,7 @@ class Thumbnails(Resource):
             if exists:
                 return make_response(vfile, 200)
             else:
-                return make_response({}, 204)
+                return make_response(jsonify({}), 204)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist')
             return make_response(jsonify(response), 404)

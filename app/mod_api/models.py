@@ -8,6 +8,7 @@ import jwt
 import math
 import cv2
 import StringIO
+import os
 
 from app import app, db, flask_bcrypt
 from app import video_client
@@ -169,15 +170,18 @@ class Video(db.Model):
         video_client.upload_video(self.filepath, video)
 
         # generate video thumbnail; same filepath with video, but in different folder
-        cap = cv2.VideoCapture(video.read())
+        video.seek(0)
+        video.save('temp.mov')
+        cap = cv2.VideoCapture('temp.mov')
         # get frame at second 1
-        for i in range(FRAMES_PER_SECOND):
-            _, img = cap.read()
+        _, img = cap.read()
+        print _,img
         thumb_buf = StringIO.StringIO()
         thumb_buf.write(img) 
         video_client.upload_thumbnail(self.filepath, thumb_buf)
         thumb_buf.close()
         cap.release()
+        os.system('rm temp.mov')
 
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
