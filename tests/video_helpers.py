@@ -9,10 +9,10 @@ def get(client, url, auth):
         headers={'Authorization': auth},
         )
 
-def post(client, url, auth, video, **kwargs):
+def post(client, url, auth, video, filename, **kwargs):
     if video is not None:
         d = {k: v for k,v in kwargs.items()}
-        d.update({'file': (video, 'video.mov')})
+        d.update({'file': (video, filename)})
         return client.post(
             url,
             data=d,
@@ -40,11 +40,11 @@ def delete(client, url, auth):
         headers={'Authorization': auth}
         )
 
-def post_video(client, auth, video=None, **kwargs):
-    return post(client, '/api/Videos', auth, video, **kwargs)
+def post_video(client, auth, video=None, filename='video.mov', **kwargs):
+    return post(client, '/api/Videos', auth, video, filename, **kwargs)
 
 def post_video_quick(client, auth, content='abba', tags=['lately', 'ive']):
-    response = post_video(client, auth, video=StringIO.StringIO(content),
+    response = post_video(client, auth, video=StringIO.StringIO(content), 
                       tags=tags,
                       lat=0.0,
                       lon=0.0

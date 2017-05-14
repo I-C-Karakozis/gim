@@ -245,9 +245,12 @@ class Video(db.Model):
     @staticmethod
     def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):    
         lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
-        tag_filter = lambda : Video.tags.any(Tag.name.in_(tags)) # holy shit functional programming!!
+        tag_filter = and_()
+        if tags:
+            for tag in tags:
+                tag_filter =  and_(tag_filter, Video.tags.any(Tag.name == tag))
         geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
-        videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter(), geo_filter)) if tags else Video.query.filter(geo_filter)
+        videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter, geo_filter)) if tags else Video.query.filter(geo_filter)
 
         # order the videos        
         videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)

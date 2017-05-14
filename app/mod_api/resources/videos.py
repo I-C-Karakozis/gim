@@ -37,7 +37,7 @@ class VideoFiles(Resource):
             vfile = send_file(video.retrieve(), mimetype='text/plain')
             return make_response(vfile, 200)
         else:
-            response = json_utils.gen_response(success=False, msg='Video does not exist')
+            response = json_utils.gen_response(success=False, msg='Video does not exist.')
             return make_response(jsonify(response), 404)
 
 class Thumbnails(Resource):
@@ -70,7 +70,7 @@ class Thumbnails(Resource):
             else:
                 return make_response(jsonify({}), 204)
         else:
-            response = json_utils.gen_response(success=False, msg='Video does not exist')
+            response = json_utils.gen_response(success=False, msg='Video does not exist.')
             return make_response(jsonify(response), 404)
 
 class Video(Resource):
@@ -113,7 +113,7 @@ class Video(Resource):
             response = json_utils.gen_response(data=json_utils.video_info(video, u_id))
             return make_response(jsonify(response), 200)
         else:
-            response = json_utils.gen_response(success=False, msg='Video does not exist')
+            response = json_utils.gen_response(success=False, msg='Video does not exist.')
             return make_response(jsonify(response), 404)
 
     @auth.require_auth_token
@@ -179,7 +179,7 @@ class Video(Resource):
             response = json_utils.gen_response(success=True, data = data)
             return make_response(jsonify(response), 200)    
         else:
-            response = json_utils.gen_response(success=False, msg='You do not own a video with this id')
+            response = json_utils.gen_response(success=False, msg='You do not own a video with this id.')
             return make_response(jsonify(response), 401)
 
     @auth.require_auth_token
@@ -200,7 +200,7 @@ class Video(Resource):
             response = json_utils.gen_response(success=True)
             return make_response(jsonify(response), 200)
         else:
-            response = json_utils.gen_response(success=False, msg='you do not own a video with this id')
+            response = json_utils.gen_response(success=False, msg='You do not own a video with this id.')
             return make_response(jsonify(response), 401)
 
 class Videos(Resource):
@@ -261,7 +261,7 @@ class Videos(Resource):
         
         # check for illegal query coordinates
         if lat > 90 or lat < -90 or lon > 180 or lon < -180:
-            response = json_utils.gen_response(success=False, msg='Illegal coordinates entered')
+            response = json_utils.gen_response(success=False, msg='Illegal coordinates entered.')
             return make_response(jsonify(response), 400)
 
         videos = models.Video.search(lat, lon, tags, min(limit, Videos.LIMIT), offset, sort_by)

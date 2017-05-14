@@ -42,7 +42,7 @@ class HallOfFameFiles(Resource):
             vfile = send_file(video.retrieve(), mimetype='text/plain')
             return make_response(vfile, 200)
         else:
-            response = json_utils.gen_response(success=False, msg='Video does not exist in the Hallf Of Fame.')
+            response = json_utils.gen_response(success=False, msg='Video does not exist in the Hall Of Fame.')
             return make_response(jsonify(response), 404)
 
 class HallOfFameThumbnails(Resource):
@@ -71,7 +71,7 @@ class HallOfFameThumbnails(Resource):
             vfile = send_file(video.retrieve_thumbnail(), mimetype='text/plain')
             return make_response(vfile, 200)
         else:
-            response = json_utils.gen_response(success=False, msg='Video does not exist')
+            response = json_utils.gen_response(success=False, msg='Video does not exist in the Hall Of Fame.')
             return make_response(jsonify(response), 404)
 
 class HallOfFame(Resource):
