@@ -9,6 +9,8 @@ import jsonschema
 class VideoUploadForm(FlaskForm):
     class Meta:
         csrf = False
+
+    # iPhone Video files: mov | Android Video files: 3gp, mp4
     file = FileField('file', validators=[
             FileRequired(), FileAllowed(['mov', '3gp', 'mp4'], '.mov files only')]) 
     lat = FloatField('lat', validators = [InputRequired(), NumberRange(min=-90, max=90)])

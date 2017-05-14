@@ -3,6 +3,7 @@ from flask_restful import Resource
 
 from app import app, db, flask_bcrypt
 from app.mod_api import models
+from app.mod_api.resources import json_utils
 
 import re
 import string
@@ -16,16 +17,10 @@ def require_auth_token(func):
             if not isinstance(u_id, str):
                 return func(*args, **kwargs)
             else:
-                response = {
-                    'status': 'failed',
-                    'message': u_id
-                    }
+                response = json_utils.gen_response(success=False, msg=u_id)
                 return make_response(jsonify(response), 401)
         else:
-            response = {
-                'status': 'failed',
-                'message': 'Provide a valid auth token.'
-                }
+            response = json_utils.gen_response(success=False, msg='Provide a valid auth token.')
             return make_response(jsonify(response), 401)
     return fail_without_auth
 
@@ -35,10 +30,7 @@ def get_auth_token(auth_header):
 def require_empty_query_string(func):
     def fail_on_query_string(*args, **kwargs):
         if request.query_string:
-            response = {
-                'status': 'failed',
-                'message': 'query string must be empty'
-                }
+            response = json_utils.gen_response(success=False, msg='Query string must be empty.')
             return make_response(jsonify(response), 400)
         else:
             return func(*args, **kwargs)
@@ -58,6 +50,7 @@ class Register(Resource):
     post -- register a new user
     """
 
+    @require_empty_query_string
     def post(self):
         """ Given an email and password, creates a user and returns their authentication credentials.
 
@@ -79,12 +72,8 @@ class Register(Resource):
         post_data = request.get_json()
         password = post_data.get('password')
 
-
         if not meets_password_requirements(password):
-            response = {
-                'status': 'failed',
-                'message': 'password must be at least {} characters long, contain 1 number, 1 letter, and 1 punctuation mark'
-                }
+            response = json_utils.gen_response(success=False, msg='Password must be at least ' + app.config.get('MIN_PASS_LEN') + ' characters long and must contain 1 number, 1 letter, and 1 punctuation mark.')
             return make_response(jsonify(response), 400) 
             
         user = models.User.query.filter_by(email=post_data.get('email')).first()
@@ -107,19 +96,12 @@ class Register(Resource):
                         'user_id': user.u_id
                         }
                     }
-
                 return make_response(jsonify(response), 201)
             except Exception as e:
-                response = {
-                    'status': 'failed',
-                    'message': 'Some error occured. Please try again'
-                    }
+                response = json_utils.gen_response(success=False, msg='Some error occured. Please try again.')
                 return make_response(jsonify(response), 401)
         else:
-            response = {
-                'status': 'failed',
-                'message': 'User already exists. Please log in.'
-                }
+            response = json_utils.gen_response(success=False, msg='User already exists. Please log in.')
             return make_response(jsonify(response), 202)
 
 class Login(Resource):
@@ -129,6 +111,7 @@ class Login(Resource):
     post -- login an existing user
     """
 
+    @require_empty_query_string
     def post(self):
         """Given an email and a password, verifies the credentials and returns authentication credentials.
 
@@ -148,6 +131,7 @@ class Login(Resource):
         }
         """
         post_data = request.get_json()
+        
         try:
             user = models.User.query.filter_by(email=post_data.get('email')).first()
             if user and flask_bcrypt.check_password_hash(user.password_hash, post_data.get('password')):
@@ -163,17 +147,11 @@ class Login(Resource):
                         }
                     return make_response(jsonify(response), 200)
             else:
-                response = {
-                    'status': 'failed',
-                    'message': 'User/Password pair is incorrect.'
-                    }
+                response = json_utils.gen_response(success=False, msg='User/Password pair is incorrect.')
                 return make_response(jsonify(response), 404)
         except Exception as e:
-            print(e) # TODO: log this
-            response = {
-                'status': 'failed',
-                'message': 'Try again.'
-                }
+            print(e) # TODO: log this--> what is this for?
+            response = json_utils.gen_response(success=False, msg='Try again.')
             return make_response(jsonify(response), 500)
 
 class Status(Resource):
@@ -183,6 +161,8 @@ class Status(Resource):
     get -- obtain the id of a user; authentication token required
     """
 
+    @require_auth_token
+    @require_empty_query_string
     def get(self):
         """Returns the id of the user corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
 
@@ -197,31 +177,17 @@ class Status(Resource):
             }
         }
         """
-        auth_header = request.headers.get('Authorization')
-        auth_token = auth_header.split(" ")[1] if auth_header else ''
-        if auth_token:
-            u_id = models.User.decode_auth_token(auth_token)
-            if not isinstance(u_id, str):
-                user = models.User.query.filter_by(u_id=u_id).first()
-                response = {
-                    'status': 'success',
-                    'data': {
-                        'user_id': user.u_id
-                        }
-                    }
-                return make_response(jsonify(response), 200)
-            else:
-                response = {
-                    'status': 'failed',
-                    'message': u_id
-                    }
-                return make_response(jsonify(response), 401)
+        auth_token = get_auth_token(request.headers.get('Authorization'))
+
+        u_id = models.User.decode_auth_token(auth_token)
+        if not isinstance(u_id, str):
+            user = models.User.query.filter_by(u_id=u_id).first()
+            response = json_utils.gen_response(data={'user_id': user.u_id})
+            return make_response(jsonify(response), 200)
         else:
-            response = {
-                'status': 'failed',
-                'message': 'Provide a valid auth token.'
-                }
+            response = json_utils.gen_response(success=False, msg=u_id)
             return make_response(jsonify(response), 401)
+
                 
 class Logout(Resource):
     """The Logout endpoint is for logging a user out.
@@ -230,6 +196,8 @@ class Logout(Resource):
     get -- log a user out; authentication token required
     """
 
+    @require_auth_token
+    @require_empty_query_string
     def get(self):
         """Log out the user who corresponds to the authentication token found in the Authorizaton field. Error if the token is invalid
 
@@ -241,35 +209,19 @@ class Logout(Resource):
             'status': 'success'
         }
         """
-        auth_header = request.headers.get('Authorization')
-        auth_token = auth_header.split(" ")[1] if auth_header else ''
-        if auth_token:
-            u_id = models.User.decode_auth_token(auth_token)
-            if not isinstance(u_id, str):
-                blacklist_token = models.BlacklistToken(token=auth_token)
-                try:
-                    db.session.add(blacklist_token)
-                    db.session.commit()
-                    response = {
-                        'status': 'success',
-                        'message': 'Succesfully logged out'
-                        }
-                    return make_response(jsonify(response), 200)
-                except Exception as e:
-                    response = {
-                        'status': 'failed',
-                        'message': e
-                        }
-                    return make_response(jsonify(response), 200)
-            else:
-                response = {
-                    'status': 'failed',
-                    'message': u_id
-                    }
-                return make_response(jsonify(response), 401)
+        auth_token = get_auth_token(request.headers.get('Authorization'))
+
+        u_id = models.User.decode_auth_token(auth_token)
+        if not isinstance(u_id, str):
+            blacklist_token = models.BlacklistToken(token=auth_token)
+            try:
+                db.session.add(blacklist_token)
+                db.session.commit()
+                response = json_utils.gen_response(msg='Succesfully logged out.')
+                return make_response(jsonify(response), 200)
+            except Exception as e:
+                response = json_utils.gen_response(success=False, msg=e)
+                return make_response(jsonify(response), 200)
         else:
-            response = {
-                'status': 'failed',
-                'message': 'Provide a valid auth token.'
-                }
-            return make_response(jsonify(response), 403)
+            response = json_utils.gen_response(success=False, msg=u_id)
+            return make_response(jsonify(response), 401)

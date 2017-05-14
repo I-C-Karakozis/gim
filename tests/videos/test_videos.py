@@ -31,7 +31,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             assert v_id > 0
 
-    def test_post_correct_android_names(self):
+    def test_post_correct_android_files(self):
         with self.client:
             contents = "akfdhlkjghkjghdsglj"
             tags = ['this', 'is', 'testing']
@@ -72,7 +72,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
             assert v_id > 0
 
-    def test_post_incorrect_android_names(self):
+    def test_post_incorrect_android_files(self):
         with self.client:
             contents = "akfdhlkjghkjghdsglj"
             tags = ['this', 'is', 'testing']
@@ -455,14 +455,15 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
 
     def test_get_all_with_tags(self):
         with self.client:
-            contents = ['one', 'day', 'we\'ll', 'old']
+            contents = ['one', 'day', 'we\'ll', 'old', 'hi']
             tags = [
-                ['think', 'about'], 
+                ['the'], 
                 ['the', 'stories'], 
-                ['that', 'we'], 
-                ['could', 'have', 'told', 'the']
+                ['the', 'stories', 'that', 'we'], 
+                ['could', 'have', 'told', 'the'],
+                []
                 ]
-            filter_tag = 'the'
+            filter_tags = ['the', 'stories']
 
             # register a user
             auth, u_id = users_api.register_user_quick(self.client)
@@ -486,15 +487,65 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             # GET on Videos endpoint with filter_tag
             response = videos_api.get_all_videos(self.client,
                                                  auth=auth,
-                                                 tags=[filter_tag],
+                                                 tags=filter_tags,
                                                  lat=0.0,
                                                  lon=0.0
                                                  )
             data = json.loads(response.data.decode())
 
             assert response.status_code == http.OK
-            assert len(data['data']['videos']) == len([ts for ts in video_info.values() if filter_tag in ts])
-            assert set(map(lambda x: x['video_id'], data['data']['videos'])) == set([k for k, ts in video_info.iteritems() if filter_tag in ts]) 
+            assert len(data['data']['videos']) == len([i for i, ts in video_info.iteritems() if set(filter_tags).issubset(set(ts))])
+            assert set(map(lambda x: x['video_id'], data['data']['videos'])) == set([k for k, ts in video_info.iteritems() if set(filter_tags).issubset(set(ts))]) 
+            
+            for v_info in data['data']['videos']:
+                assert set(v_info['tags']) == set(video_info[v_info['video_id']])
+                assert v_info['upvotes'] == 0
+                assert v_info['downvotes'] == 0
+                assert v_info['user_vote'] == 0
+
+    def test_get_all_with_empty_tags(self):
+        with self.client:
+            contents = ['one', 'day', 'we\'ll', 'old', 'hi']
+            tags = [
+                ['the'], 
+                ['the', 'stories'], 
+                ['the', 'stories', 'that', 'we'], 
+                ['could', 'have', 'told', 'the'],
+                []
+                ]
+            filter_tags = list()
+
+            # register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # POST to Videos endpoint
+            video_info = {}
+            for content, ts in zip(contents, tags):
+                response = videos_api.post_video(self.client,
+                                                 auth=auth,
+                                                 video=StringIO.StringIO(content),
+                                                 tags=ts,
+                                                 lat=0.0,
+                                                 lon=0.0
+                                                 )
+                
+                data = json.loads(response.data.decode())
+                video_info[data['data']['video_id']] = ts
+
+            assert len(set(video_info.keys())) == len(contents)
+            
+            # GET on Videos endpoint with filter_tag
+            response = videos_api.get_all_videos(self.client,
+                                                 auth=auth,
+                                                 tags=filter_tags,
+                                                 lat=0.0,
+                                                 lon=0.0
+                                                 )
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.OK
+            assert len(data['data']['videos']) == len([i for i, ts in video_info.iteritems() if set(filter_tags).issubset(set(ts))])
+            assert set(map(lambda x: x['video_id'], data['data']['videos'])) == set([k for k, ts in video_info.iteritems() if set(filter_tags).issubset(set(ts))]) 
             
             for v_info in data['data']['videos']:
                 assert set(v_info['tags']) == set(video_info[v_info['video_id']])
