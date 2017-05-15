@@ -116,7 +116,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             file = open('102MB.mov', 'r')
             contents = file.read()
             file.close()
-            os.('rm 102MB.mov')
+            os.system('rm 102MB.mov')
 
             # register a user
             auth, u_id = users_api.register_user_quick(self.client)
@@ -125,7 +125,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.post_video(self.client,
                                              auth=auth,
                                              video=StringIO.StringIO(contents),
-                                             tags=tags,
+                                             tags=[],
                                              lat=0.0,
                                              lon=0.0
                                              )
