@@ -226,7 +226,7 @@ class Video(db.Model):
         db.session.delete(self)
         db.session.commit()
 
-    def delete_thumbnail():
+    def delete_thumbnail(self):
         video_client.delete_thumbnails([self.filepath])
 
     @staticmethod
