@@ -174,13 +174,13 @@ class Video(db.Model):
         # video.save('temp.avi')
         # image = video_to_frames('temp.avi')
         # thumbnail = image_to_thumbs(image)
-        cap = cv2.VideoCapture(video.read())
-        _, img = cap.read()
-        thumb_buf = StringIO.StringIO()
-        thumb_buf.write(img) 
-        video_client.upload_thumbnail(self.filepath, thumb_buf)
-        thumb_buf.close()
-        cap.release()
+        # cap = cv2.VideoCapture(video.read())
+        # _, img = cap.read()
+        # thumb_buf = StringIO.StringIO()
+        # thumb_buf.write(img) 
+        # video_client.upload_thumbnail(self.filepath, thumb_buf)
+        # thumb_buf.close()
+        # cap.release()
 
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
@@ -319,7 +319,7 @@ class HallOfFame(db.Model):
 
     def delete(self):
         video_client.delete_videos([self.filepath], is_hof=True)
-        video_client.delete_thumbnails([self.filepath])
+        # video_client.delete_thumbnails([self.filepath])
         db.session.delete(self)
         db.session.commit()        
 
@@ -347,8 +347,8 @@ class HallOfFame(db.Model):
                 last.delete()
                 user.stored_score += net_votes
                 user.commit()            
-            else:
-                video.delete_thumbnail()
+            # else:
+                # video.delete_thumbnail()
 
             video.delete()        
 

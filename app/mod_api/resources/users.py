@@ -151,7 +151,7 @@ class User(Resource):
                     'email': user.email ,
                     'registered_on': user.registered_on ,
                     'last_active_on': user.last_active_on ,
-                    'score': user.get_score(),
+                    'score': int(user.get_score()),
                     'videos': video_infos
                     }
             response = json_utils.gen_response(data=data)
