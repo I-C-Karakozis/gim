@@ -73,7 +73,8 @@ class Register(Resource):
         password = post_data.get('password')
 
         if not meets_password_requirements(password):
-            response = json_utils.gen_response(success=False, msg='Password must be at least 6 characters long and must contain 1 number, 1 letter, and 1 punctuation mark.')
+            message = 'Password must be at least' + str(app.config.get('MIN_PASS_LEN')) + 'characters long and must contain 1 number, 1 letter, and 1 punctuation mark.'
+            response = json_utils.gen_response(success=False, msg=message)
             return make_response(jsonify(response), 400) 
             
         user = models.User.query.filter_by(email=post_data.get('email')).first()
