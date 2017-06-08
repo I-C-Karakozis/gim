@@ -52,9 +52,18 @@ class User(db.Model):
         db.session.commit()
 
     def delete(self):
+        # delete videos owned by the user
+        videos = Video.query.filter_by(u_id=self.u_id)
+        for video in videos:
+            video.delete()
+
+        # delete hall of fame videos produced by the user
+        hof_videos = HallOfFame.query.filter_by(u_id=self.u_id)
+        for video in hof_videos:
+            video.delete()
+
         db.session.delete(self)
         db.session.commit()
-
 
     def encode_auth_token(self):
         now = datetime.datetime.now()
@@ -219,7 +228,6 @@ class Video(db.Model):
         expired_votes = Vote.query.filter_by(vid_id = self.v_id)
         for vote in expired_votes:
             vote.delete()
-
 
         # delete the video
         video_client.delete_videos([self.filepath])
