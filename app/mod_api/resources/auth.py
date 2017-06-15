@@ -5,6 +5,7 @@ from app import app, db, flask_bcrypt
 from app.mod_api import models
 from app.mod_api.resources import json_utils
 
+from jsonschema import validate
 import re
 import string
 
@@ -70,8 +71,13 @@ class Register(Resource):
         }
         """
         post_data = request.get_json()
-        password = post_data.get('password')
+        try:
+            validate(post_data, json_utils.auth_schema)
+        except:
+            response = json_utils.gen_response(success=False, msg='Bad JSON: email and password required.')
+            return make_response(jsonify(response), 400)
 
+        password = post_data.get('password')
         if not meets_password_requirements(password):
             message = 'Password must be at least' + str(app.config.get('MIN_PASS_LEN')) + 'characters long and must contain 1 number, 1 letter, and 1 punctuation mark.'
             response = json_utils.gen_response(success=False, msg=message)
@@ -82,9 +88,7 @@ class Register(Resource):
             try:
                 user = models.User(
                     email=post_data.get('email'),
-                    password=post_data.get('password')
-                    )
-
+                    password=password)
                 db.session.add(user)
                 db.session.commit()
 
@@ -132,6 +136,11 @@ class Login(Resource):
         }
         """
         post_data = request.get_json()
+        try:
+            validate(post_data, json_utils.auth_schema)
+        except:
+            response = json_utils.gen_response(success=False, msg='Bad JSON: email and password required.')
+            return make_response(jsonify(response), 400)
         
         try:
             user = models.User.query.filter_by(email=post_data.get('email')).first()

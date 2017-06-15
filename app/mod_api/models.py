@@ -52,9 +52,18 @@ class User(db.Model):
         db.session.commit()
 
     def delete(self):
+        # delete videos owned by the user
+        videos = Video.query.filter_by(u_id=self.u_id)
+        for video in videos:
+            video.delete()
+
+        # delete hall of fame videos produced by the user
+        hof_videos = HallOfFame.query.filter_by(u_id=self.u_id)
+        for video in hof_videos:
+            video.delete()
+
         db.session.delete(self)
         db.session.commit()
-
 
     def encode_auth_token(self):
         now = datetime.datetime.now()
@@ -124,7 +133,7 @@ class Vote(db.Model):
         self.vid_id = vid_id
         self.upvote = upvote
 
-    def commit(self, insert = False):
+    def commit(self, insert=False):
         if insert:
             db.session.add(self)
         db.session.commit()
@@ -220,7 +229,6 @@ class Video(db.Model):
         for vote in expired_votes:
             vote.delete()
 
-
         # delete the video
         video_client.delete_videos([self.filepath])
         db.session.delete(self)
@@ -236,6 +244,15 @@ class Video(db.Model):
     @staticmethod
     def get_videos_by_user_id(u_id):
         videos = Video.query.filter_by(u_id=u_id) 
+
+        order = Video.uploaded_on.desc()
+        videos = videos.order_by(order)
+
+        return videos.all()  
+
+    @staticmethod
+    def get_liked_videos_by_user_id(u_id):
+        videos = Video.query.join(Video.votes).filter(and_(Vote.u_id == u_id, Vote.upvote))
 
         order = Video.uploaded_on.desc()
         videos = videos.order_by(order)
