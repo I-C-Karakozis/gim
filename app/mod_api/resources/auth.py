@@ -70,17 +70,9 @@ class Register(Resource):
             }
         }
         """
-        schema = {
-            "type": "object",
-            "properties": {
-                "email": {"type": "string"},
-                "password": {"type": "string"}
-                },
-            "required": ["email", "password"],
-            }
         post_data = request.get_json()
         try:
-            validate(post_data, schema)
+            validate(post_data, json_utils.auth_schema)
         except:
             response = json_utils.gen_response(success=False, msg='Bad JSON: email and password required.')
             return make_response(jsonify(response), 400)
@@ -143,17 +135,9 @@ class Login(Resource):
             }
         }
         """
-        schema = {
-            "type": "object",
-            "properties": {
-                "email": {"type": "string"},
-                "password": {"type": "string"}
-                },
-            "required": ["email", "password"],
-            }
         post_data = request.get_json()
         try:
-            validate(post_data, schema)
+            validate(post_data, json_utils.auth_schema)
         except:
             response = json_utils.gen_response(success=False, msg='Bad JSON: email and password required.')
             return make_response(jsonify(response), 400)

@@ -257,7 +257,6 @@ class Video(db.Model):
         order = Video.uploaded_on.desc()
         videos = videos.order_by(order)
 
-        # print videos.all()
         return videos.all()       
 
     @staticmethod

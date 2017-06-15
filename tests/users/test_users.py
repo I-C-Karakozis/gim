@@ -456,7 +456,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.NOT_FOUND
 
-    def test_get_nonexistent_user_Videos(self):
+    def test_get_nonexistent_user_videos(self):
         with self.client:
             # Register two users
             auth1, u_id1 = api.register_user_quick(self.client,
@@ -481,7 +481,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert len(videos) == 0  
 
-    def test_get_all_user_Videos(self):
+    def test_get_all_user_videos(self):
         with self.client:
             contents = ['a', 'b', 'c', 'd', 'e']
             auth1, u_id1 = api.register_user_quick(self.client)
@@ -525,7 +525,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert len(data['data']['videos']) == 1
             assert v_id == data['data']['videos'][0]['video_id']
 
-    def test_get_liked_Videos_no_votes(self):
+    def test_get_liked_videos_no_votes(self):
         with self.client:
             # Register two users
             auth1, u_id1 = api.register_user_quick(self.client,
@@ -550,7 +550,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert len(videos) == 0  
 
-    def test_get_liked_Videos_single_upvote(self):
+    def test_get_liked_videos_single_upvote(self):
         with self.client:
             # Register two users
             auth1, u_id1 = api.register_user_quick(self.client,
@@ -585,7 +585,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert len(videos) == 1  
             assert v_id1 == data['data']['liked_videos'][0]['video_id']
 
-    def test_get_all_user_Videos_mixed_votes(self):
+    def test_get_all_user_videos_mixed_votes(self):
         with self.client:
             upvoted = ['a', 'b', 'c']
             downvoted = ['d', 'e']
