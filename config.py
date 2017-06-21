@@ -1,8 +1,10 @@
 import os
 
 class Config(object):
+    ## GENERAL APPLICATION CONFIGURATIONS ##
+
     # Statement for enabling the development environment
-	DEBUG = True
+	DEBUG = False
 	TESTING = False
 
 	# Define the application directory
@@ -22,6 +24,9 @@ class Config(object):
 
 	# Enable protection agains *Cross-site Request Forgery (CSRF)*
 	CSRF_ENABLED     = True
+	WTF_CSRF_ENABLED = True
+    DEBUG_TB_ENABLED = False
+    DEBUG_TB_INTERCEPT_REDIRECTS = False
 
 	# Use a secure, unique and absolutely secret key for
 	# signing the data. 
@@ -31,10 +36,26 @@ class Config(object):
 	SECRET_KEY = "secret"
 
 	# Bcyrpt cryptographic parameters
-	BCRYPT_LOG_ROUNDS = 7
+	BCRYPT_LOG_ROUNDS = 13
 
 	# Minimum password length
 	MIN_PASS_LEN = 6
+
+	## MAIL CONFIGURATIONS ##
+    SECURITY_PASSWORD_SALT = 'my_precious_two'
+    
+    # mail settings
+    MAIL_SERVER = 'smtp.googlemail.com'
+    MAIL_PORT = 465
+    MAIL_USE_TLS = False
+    MAIL_USE_SSL = True
+
+    # gmail authentication
+    MAIL_USERNAME = 'gim04072017@gmail.com'      # os.environ['APP_MAIL_USERNAME']
+    MAIL_PASSWORD = 'matthew_ioannis_gordon-333' # os.environ['APP_MAIL_PASSWORD']
+
+    # mail accounts
+    MAIL_DEFAULT_SENDER = 'gim04072017@example.com'
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ['PURVIEW_MYSQL_URI']

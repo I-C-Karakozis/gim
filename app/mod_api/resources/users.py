@@ -4,7 +4,7 @@ from flask_restful import Resource, reqparse
 from app import app, db, flask_bcrypt
 from app.mod_api import models
 from app.mod_api.resources import auth
-from app.mod_api.resources import json_utils
+from app.mod_api.resources.rest_tools import json_utils
 
 from jsonschema import validate
 

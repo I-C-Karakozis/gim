@@ -28,6 +28,8 @@ class User(db.Model):
     registered_on = db.Column(db.DateTime, nullable=False)
     last_active_on = db.Column(db.DateTime, nullable=False)
     stored_score = db.Column(db.Integer, nullable=False)
+    confirmed = db.Column(db.Boolean, nullable=False, default=False)
+    confirmed_on = db.Column(db.DateTime, nullable=True)
 
     def __init__(self, email, password):
         self.email = email
@@ -55,6 +57,10 @@ class User(db.Model):
         db.session.delete(self)
         db.session.commit()
 
+    def confirm(self):
+        self.confirmed = True
+        self.confirmed_on = datetime.datetime.now()
+        db.session.commit()
 
     def encode_auth_token(self):
         now = datetime.datetime.now()
