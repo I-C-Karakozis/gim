@@ -1,6 +1,15 @@
 from app import app
 from app.mod_api import models
 
+auth_schema = {
+    "type": "object",
+    "properties": {
+        "email": {"type": "string"},
+        "password": {"type": "string"}
+        },
+    "required": ["email", "password"],
+    }
+
 def gen_response(success=True, msg=None, data=None):
     res = {}
     res['status'] = 'success' if success else 'failed'

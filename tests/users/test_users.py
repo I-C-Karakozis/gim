@@ -1,7 +1,9 @@
 from tests import GimTestCase
 from tests import user_helpers as api
 from tests import video_helpers as video_api
+from tests import hof_helpers as hof_api
 from tests import http_helpers as http
+from tests import cron_helpers as cron
 
 import json
 from datetime import datetime
@@ -135,9 +137,12 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
 
     def test_delete_valid(self):
         with self.client:
-            # register a user
+            # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
-            
+            v_id = video_api.post_video_quick(self.client, auth=auth)
+            cron.delete_expired()            
+            v_id = video_api.post_video_quick(self.client, auth=auth)
+
             response = api.delete_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
@@ -145,7 +150,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
-            assert data['data']['user_id'] == u_id
+            assert data['data']['user_id'] == u_id 
 
             response = api.get_user(self.client,
                                        u_id = u_id,
@@ -153,10 +158,26 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.NOT_FOUND
 
+            response = video_api.get_video(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.NOT_FOUND
+
+            response = hof_api.get_all_hof_videos(self.client, auth)
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']          
+            assert len(videos) == 0
+
     def test_delete_invalid_password(self):
         with self.client:
-            # register a user
+            # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
+            v_id = video_api.post_video_quick(self.client, auth=auth)
+            cron.delete_expired()            
+            v_id = video_api.post_video_quick(self.client, auth=auth)
             
             response = api.delete_user(self.client,
                                        u_id = u_id,
@@ -172,11 +193,27 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.OK
 
+            # test related videos still exist
+            response = video_api.get_video(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.OK
+
+            response = hof_api.get_all_hof_videos(self.client, auth)
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']          
+            assert len(videos) == 1
 
     def test_delete_invalid_noPassword(self):
         with self.client:
-            # register a user
+            # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
+            v_id = video_api.post_video_quick(self.client, auth=auth)
+            cron.delete_expired()            
+            v_id = video_api.post_video_quick(self.client, auth=auth)
             
             response = api.delete_user(self.client,
                                        u_id = u_id,
@@ -191,10 +228,27 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.OK
 
+            # test related videos still exist
+            response = video_api.get_video(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.OK
+
+            response = hof_api.get_all_hof_videos(self.client, auth)
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']          
+            assert len(videos) == 1
+
     def test_delete_invalid_uid(self):
         with self.client:
-            # register a user            
+            # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
+            v_id = video_api.post_video_quick(self.client, auth=auth)
+            cron.delete_expired()            
+            v_id = video_api.post_video_quick(self.client, auth=auth)
             
             response = api.delete_user(self.client,
                                        u_id = 5,
@@ -209,6 +263,20 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                        auth = auth,
                                     )
             assert response.status_code == http.OK
+
+              # test related videos still exist
+            response = video_api.get_video(self.client,
+                                            v_id,
+                                            auth=auth
+                                            )
+
+            assert response.status_code == http.OK
+
+            response = hof_api.get_all_hof_videos(self.client, auth)
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            videos = data['data']['videos']          
+            assert len(videos) == 1
 
     def test_patch_valid_testNewPassword(self):
         with self.client:
@@ -388,7 +456,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.NOT_FOUND
 
-    def test_get_nonecistent_user_Videos(self):
+    def test_get_nonexistent_user_videos(self):
         with self.client:
             # Register two users
             auth1, u_id1 = api.register_user_quick(self.client,
@@ -413,7 +481,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert len(videos) == 0  
 
-    def test_get_all_user_Videos(self):
+    def test_get_all_user_videos(self):
         with self.client:
             contents = ['a', 'b', 'c', 'd', 'e']
             auth1, u_id1 = api.register_user_quick(self.client)
@@ -456,4 +524,119 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert len(data['data']['videos']) == 1
             assert v_id == data['data']['videos'][0]['video_id']
+
+    def test_get_liked_videos_no_votes(self):
+        with self.client:
+            # Register two users
+            auth1, u_id1 = api.register_user_quick(self.client,
+                                                         email='gim@gim.com'
+                                                         )
+            auth2, u_id2 = api.register_user_quick(self.client,
+                                                         email='gim2@gim.com'
+                                                         )
+
+            v_id = video_api.post_video_quick(self.client,
+                                                   auth=auth2
+                                                   )
+            
+            response = api.get_user(self.client,
+                                       u_id = u_id1,
+                                       auth = auth1
+                                    )
+
+            data = json.loads(response.data.decode())
+            videos = data['data']['liked_videos']
+            
+            assert response.status_code == http.OK
+            assert len(videos) == 0  
+
+    def test_get_liked_videos_single_upvote(self):
+        with self.client:
+            # Register two users
+            auth1, u_id1 = api.register_user_quick(self.client,
+                                                         email='gim@gim.com'
+                                                         )
+            auth2, u_id2 = api.register_user_quick(self.client,
+                                                         email='gim2@gim.com'
+                                                         )
+
+            v_id1 = video_api.post_video_quick(self.client,
+                                                   auth=auth2
+                                                   )
+
+            v_id2 = video_api.post_video_quick(self.client,
+                                                   auth=auth1
+                                                   )
+
+            video_api.upvote_video(self.client,
+                                   v_id1,
+                                   auth=auth1
+                                   )
+            
+            response = api.get_user(self.client,
+                                       u_id = u_id1,
+                                       auth = auth1
+                                    )
+
+            data = json.loads(response.data.decode())
+            videos = data['data']['liked_videos']
+            
+            assert response.status_code == http.OK
+            assert len(videos) == 1  
+            assert v_id1 == data['data']['liked_videos'][0]['video_id']
+
+    def test_get_all_user_videos_mixed_votes(self):
+        with self.client:
+            upvoted = ['a', 'b', 'c']
+            downvoted = ['d', 'e']
+            auth1, u_id1 = api.register_user_quick(self.client)
+            auth2, u_id2 = api.register_user_quick(self.client,
+                                                    email='gim2@gim.com'
+                                                    )
+
+            video_ids = {}
+            for content in upvoted:
+                v_id = video_api.post_video_quick(self.client,
+                                                   auth=auth2
+                                                   )
+                video_ids[content] = v_id
+
+                video_api.upvote_video(self.client,
+                                   v_id,
+                                   auth=auth1
+                                   )
+
+            for content in downvoted:
+                v_id = video_api.post_video_quick(self.client,
+                                                   auth=auth2
+                                                   )
+                video_ids[content] = v_id
+
+                video_api.downvote_video(self.client,
+                                   v_id,
+                                   auth=auth1
+                                   )
+
+            response = api.get_user(self.client,
+                                    u_id = u_id1,
+                                    auth = auth1
+                                    )
+
+            data = json.loads(response.data.decode())
+            intended_order = [video_ids[content] for content in reversed(upvoted)]
+            returned_order = [x['video_id'] for x in data['data']['liked_videos']]
+
+            assert response.status_code == http.OK
+            assert len(data['data']['liked_videos']) == 3
+            assert returned_order == intended_order
+
+            response = api.get_user(self.client,
+                                       u_id = u_id2,
+                                       auth = auth2
+                                    )
+
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.OK
+            assert len(data['data']['liked_videos']) == 0
 

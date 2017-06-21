@@ -76,7 +76,7 @@ class User(Resource):
             passed_new_password = post_data.get('new_password')
 
             if not auth.meets_password_requirements(passed_new_password):
-                response = json_utils.gen_response(success=False, msg="Password must be at least" + app.config.get('MIN_PASS_LEN') + "characters long and must contain 1 number, 1 letter, and 1 punctuation mark.")
+                response = json_utils.gen_response(success=False, msg="Password must be at least " + app.config.get('MIN_PASS_LEN') + " characters long and must contain 1 number, 1 letter, and 1 punctuation mark.")
                 return make_response(jsonify(response), 400)
 
             if not flask_bcrypt.check_password_hash(user.password_hash, passed_old_password):
@@ -124,6 +124,17 @@ class User(Resource):
                                 'downvotes': 0
                             }, 
                             ...
+                        ],
+                'liked_videos': 
+                        [
+                            {
+                                'video_id': 5,
+                                'uploaded_on': ,
+                                'tags': ['tiger', ...],
+                                'upvotes': 46,
+                                'downvotes': 0
+                            }, 
+                            ...
                         ]
 
                 }
@@ -142,17 +153,22 @@ class User(Resource):
             user = models.User.query.get_or_404(user_id)
             user.commit()
 
-            # users video
+            # user's videos
             videos = models.Video.get_videos_by_user_id(user_id)
-            video_infos = [json_utils.video_info(v, user_id) for v in videos]
+            videos_info = [json_utils.video_info(v, user_id) for v in videos]
+
+            # videos the user has liked
+            liked_videos = models.Video.get_liked_videos_by_user_id(user_id)
+            liked_videos_info = [json_utils.video_info(v, user_id) for v in liked_videos]
             
             data = {
                     'user_id': user_id ,
                     'email': user.email ,
                     'registered_on': user.registered_on ,
                     'last_active_on': user.last_active_on ,
-                    'score': user.get_score(),
-                    'videos': video_infos
+                    'score': int(user.get_score()),
+                    'videos': videos_info,
+                    'liked_videos': liked_videos_info
                     }
             response = json_utils.gen_response(data=data)
             return make_response(jsonify(response), 200)

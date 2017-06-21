@@ -54,6 +54,16 @@ class User(db.Model):
         db.session.commit()
 
     def delete(self):
+        # delete videos owned by the user
+        videos = Video.query.filter_by(u_id=self.u_id)
+        for video in videos:
+            video.delete()
+
+        # delete hall of fame videos produced by the user
+        hof_videos = HallOfFame.query.filter_by(u_id=self.u_id)
+        for video in hof_videos:
+            video.delete()
+
         db.session.delete(self)
         db.session.commit()
 
@@ -130,7 +140,7 @@ class Vote(db.Model):
         self.vid_id = vid_id
         self.upvote = upvote
 
-    def commit(self, insert = False):
+    def commit(self, insert=False):
         if insert:
             db.session.add(self)
         db.session.commit()
@@ -180,13 +190,13 @@ class Video(db.Model):
         # video.save('temp.avi')
         # image = video_to_frames('temp.avi')
         # thumbnail = image_to_thumbs(image)
-        cap = cv2.VideoCapture(video.read())
-        _, img = cap.read()
-        thumb_buf = StringIO.StringIO()
-        thumb_buf.write(img) 
-        video_client.upload_thumbnail(self.filepath, thumb_buf)
-        thumb_buf.close()
-        cap.release()
+        # cap = cv2.VideoCapture(video.read())
+        # _, img = cap.read()
+        # thumb_buf = StringIO.StringIO()
+        # thumb_buf.write(img) 
+        # video_client.upload_thumbnail(self.filepath, thumb_buf)
+        # thumb_buf.close()
+        # cap.release()
 
     def retrieve(self):
         return video_client.retrieve_videos([self.filepath])[0]
@@ -226,7 +236,6 @@ class Video(db.Model):
         for vote in expired_votes:
             vote.delete()
 
-
         # delete the video
         video_client.delete_videos([self.filepath])
         db.session.delete(self)
@@ -242,6 +251,15 @@ class Video(db.Model):
     @staticmethod
     def get_videos_by_user_id(u_id):
         videos = Video.query.filter_by(u_id=u_id) 
+
+        order = Video.uploaded_on.desc()
+        videos = videos.order_by(order)
+
+        return videos.all()  
+
+    @staticmethod
+    def get_liked_videos_by_user_id(u_id):
+        videos = Video.query.join(Video.votes).filter(and_(Vote.u_id == u_id, Vote.upvote))
 
         order = Video.uploaded_on.desc()
         videos = videos.order_by(order)
@@ -325,7 +343,7 @@ class HallOfFame(db.Model):
 
     def delete(self):
         video_client.delete_videos([self.filepath], is_hof=True)
-        video_client.delete_thumbnails([self.filepath])
+        # video_client.delete_thumbnails([self.filepath])
         db.session.delete(self)
         db.session.commit()        
 
@@ -353,8 +371,8 @@ class HallOfFame(db.Model):
                 last.delete()
                 user.stored_score += net_votes
                 user.commit()            
-            else:
-                video.delete_thumbnail()
+            # else:
+                # video.delete_thumbnail()
 
             video.delete()        
 

@@ -67,8 +67,8 @@ class HallOfFameThumbnails(Resource):
         video = models.HallOfFame.get_video_by_id(video_id)
 
         if video:
-            vfile = send_file(video.retrieve_thumbnail(), mimetype='text/plain')
-            return make_response(vfile, 200)
+            # vfile = send_file(video.retrieve_thumbnail(), mimetype='text/plain')
+            return make_response(jsonify({}),200)
         else:
             response = json_utils.gen_response(success=False, msg='Video does not exist in the Hall Of Fame.')
             return make_response(jsonify(response), 404)

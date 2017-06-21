@@ -63,9 +63,9 @@ class Thumbnails(Resource):
 
         if video:
             exists, thumbnail = video.retrieve_thumbnail()
-            vfile = send_file(thumbnail, mimetype='text/plain')
+            # vfile = send_file(thumbnail, mimetype='text/plain')
             if exists:
-                return make_response(vfile, 200)
+                return make_response(jsonify({}), 200)
             else:
                 return make_response(jsonify({}), 204)
         else:
