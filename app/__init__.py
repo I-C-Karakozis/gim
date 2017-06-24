@@ -1,6 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask 
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from flask_mail import Mail
 
 # Define the WSGI application object
 app = Flask(__name__)
@@ -11,6 +12,8 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 # Configurations
 app.config.from_object('config.TestingConfig')
 
+# Define mail
+mail = Mail(app)
 
 # Define the database object which is imported
 # by modules and controllers

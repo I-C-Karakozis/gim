@@ -2,7 +2,7 @@ from flask import render_template, url_for
 from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Message
 
-from app import app
+from app import app, mail
 
 def generate_confirmation_token(email):
     serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
@@ -27,11 +27,11 @@ def send_email(to, subject, template):
         html=template,
         sender=app.config['MAIL_DEFAULT_SENDER']
     )
-    # mail.send(msg)
+    mail.send(msg)
 
 def initialize_email_confirmation(user):
     token = generate_confirmation_token(user.email)
-    confirm_url = url_for('confirm.patch', token=token, _external=True)
+    confirm_url = url_for('api.confirm', token=token, _external=True)
     html = render_template('activate.html', confirm_url=confirm_url)
     subject = "Please confirm your email."
     send_email(user.email, subject, html)

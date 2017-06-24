@@ -1,4 +1,4 @@
-from flask import request, make_response, jsonify, flash
+from flask import request, make_response, jsonify, flash, render_template
 from flask_restful import Resource
 
 from app import app, db, flask_bcrypt
@@ -8,6 +8,7 @@ from app.mod_api.resources.rest_tools import authentication, email, json_utils
 from jsonschema import validate
 import re
 import string
+import traceback
 
 def require_auth_token(func):
     def fail_without_auth(*args, **kwargs):
@@ -82,8 +83,9 @@ class Register(Resource):
                 user = models.User(
                     email=post_data.get('email'),
                     password=password)
+                email.initialize_email_confirmation(user)
                 db.session.add(user)
-                db.session.commit()
+                db.session.commit()                
 
                 auth_token = user.encode_auth_token()
                 response = {
@@ -96,6 +98,8 @@ class Register(Resource):
                     }
                 return make_response(jsonify(response), 201)
             except Exception as e:
+                db.session.rollback()
+                traceback.print_exc()
                 response = json_utils.gen_response(success=False, msg='Some error occured. Please try again.')
                 return make_response(jsonify(response), 401)
         else:
@@ -126,8 +130,9 @@ class Confirm(Resource):
         if user.confirmed:
             flash('Account already confirmed. Please login.', 'success')
         else:
+            print 1
             user.confirm()
-            flash('You have confirmed your account. Thanks!', 'success')
+            return render_template('activated.html')
 
 class Login(Resource):
     """The Login endpoint is for logging in a user.

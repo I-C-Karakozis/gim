@@ -43,14 +43,14 @@ class Config(object):
     DEBUG_TB_INTERCEPT_REDIRECTS = False
 
     # mail settings
-    MAIL_SERVER = 'smtp.googlemail.com'
+    MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 465
     MAIL_USE_TLS = False
-    MAIL_USE_SSL = False
+    MAIL_USE_SSL = True
 
     # gmail authentication
-    MAIL_USERNAME = os.environ['APP_MAIL_USERNAME']
-    MAIL_PASSWORD = os.environ['APP_MAIL_PASSWORD']
+    MAIL_USERNAME = 'gim04172017@gmail.com' # os.environ['APP_MAIL_USERNAME']
+    MAIL_PASSWORD = 'gordon_ioannis_matthew-333'
 
     # mail accounts
     MAIL_DEFAULT_SENDER = 'gim04172017@gmail.com'
@@ -61,5 +61,6 @@ class ProductionConfig(Config):
     SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
 
 class TestingConfig(Config):
+    # enable testing to block emailing during unit testing
     TESTING = True
     
