@@ -1,9 +1,9 @@
-from flask import request, make_response, jsonify
+from flask import request, make_response, jsonify, flash
 from flask_restful import Resource
 
 from app import app, db, flask_bcrypt
 from app.mod_api import models
-from app.mod_api.resources import json_utils
+from app.mod_api.resources.rest_tools import authentication, email, json_utils 
 
 from jsonschema import validate
 import re
@@ -36,13 +36,6 @@ def require_empty_query_string(func):
         else:
             return func(*args, **kwargs)
     return fail_on_query_string
-
-def meets_password_requirements(password):
-    len_req = len(password) >= app.config.get('MIN_PASS_LEN')
-    letter_req = re.search('[A-Za-z]', password)
-    number_req = re.search('\\d', password)
-    punctuation_req = re.search('[^A-Za-z0-9]', password)
-    return len_req and letter_req and number_req and punctuation_req
     
 class Register(Resource):
     """ The Register endpoint is for creating a new user.
@@ -78,7 +71,7 @@ class Register(Resource):
             return make_response(jsonify(response), 400)
 
         password = post_data.get('password')
-        if not meets_password_requirements(password):
+        if not authentication.meets_password_requirements(password):
             message = 'Password must be at least' + str(app.config.get('MIN_PASS_LEN')) + 'characters long and must contain 1 number, 1 letter, and 1 punctuation mark.'
             response = json_utils.gen_response(success=False, msg=message)
             return make_response(jsonify(response), 400) 
@@ -108,6 +101,33 @@ class Register(Resource):
         else:
             response = json_utils.gen_response(success=False, msg='User already exists. Please log in.')
             return make_response(jsonify(response), 202)
+
+class Confirm(Resource):
+    """The Confirm endpoint is for validating a user'email.
+
+    The Confirm endpoint supports the following http requests:
+    patch -- obtain the email confirmation token of a user; verify the user account
+    """
+
+    @require_empty_query_string
+    def patch(self, token):
+        """Verifies the email and app acount of the user.
+
+        Request: PATCH /Confirm/<token>
+
+        Response: Web view
+            flash('You have confirmed your account. Thanks!', 'success')
+        """
+        try:
+            email = confirm_token(token)
+        except:
+            flash('The confirmation link is invalid or has expired.', 'danger')
+        user = User.query.filter_by(email=email).first_or_404()
+        if user.confirmed:
+            flash('Account already confirmed. Please login.', 'success')
+        else:
+            user.confirm()
+            flash('You have confirmed your account. Thanks!', 'success')
 
 class Login(Resource):
     """The Login endpoint is for logging in a user.

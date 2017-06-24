@@ -28,6 +28,8 @@ class User(db.Model):
     registered_on = db.Column(db.DateTime, nullable=False)
     last_active_on = db.Column(db.DateTime, nullable=False)
     stored_score = db.Column(db.Integer, nullable=False)
+    confirmed = db.Column(db.Boolean, nullable=False, default=False)
+    confirmed_on = db.Column(db.DateTime, nullable=True)
 
     def __init__(self, email, password):
         self.email = email
@@ -49,6 +51,12 @@ class User(db.Model):
         self.last_active_on = now
         if insert:
             db.session.add(self)
+        db.session.commit()
+
+    def confirm(self):
+        now = datetime.datetime.now()
+        self.confirmed_on = now
+        confirmed = True
         db.session.commit()
 
     def delete(self):

@@ -4,7 +4,7 @@ from flask_restful import Resource, reqparse
 from app import app, db, flask_bcrypt
 from app.mod_api import models
 from app.mod_api.resources import auth
-from app.mod_api.resources import json_utils
+from app.mod_api.resources.rest_tools import json_utils, validators, authentication
 
 from jsonschema import validate
 
@@ -75,7 +75,7 @@ class User(Resource):
             passed_old_password = post_data.get('password')
             passed_new_password = post_data.get('new_password')
 
-            if not auth.meets_password_requirements(passed_new_password):
+            if not authentication.meets_password_requirements(passed_new_password):
                 response = json_utils.gen_response(success=False, msg="Password must be at least " + app.config.get('MIN_PASS_LEN') + " characters long and must contain 1 number, 1 letter, and 1 punctuation mark.")
                 return make_response(jsonify(response), 400)
 

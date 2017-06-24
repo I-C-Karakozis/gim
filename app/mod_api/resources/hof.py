@@ -3,8 +3,7 @@ from flask_restful import Resource, reqparse
 
 from app.mod_api import models
 from app.mod_api.resources import auth
-from app.mod_api.resources import json_utils
-from app.mod_api.resources import validators
+from app.mod_api.resources.rest_tools import json_utils, validators
 
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
