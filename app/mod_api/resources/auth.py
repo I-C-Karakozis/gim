@@ -6,38 +6,9 @@ from app.mod_api import models
 from app.mod_api.resources.rest_tools import authentication, email, json_utils 
 
 from jsonschema import validate
-import re
 import string
 import traceback
-
-def require_auth_token(func):
-    def fail_without_auth(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
-        auth_token = auth_header.split(" ")[1] if auth_header else ''
-        if auth_token:
-            u_id = models.User.decode_auth_token(auth_token)
-            if not isinstance(u_id, str):
-                return func(*args, **kwargs)
-            else:
-                response = json_utils.gen_response(success=False, msg=u_id)
-                return make_response(jsonify(response), 401)
-        else:
-            response = json_utils.gen_response(success=False, msg='Provide a valid auth token.')
-            return make_response(jsonify(response), 401)
-    return fail_without_auth
-
-def get_auth_token(auth_header):
-    return auth_header.split(" ")[1] if auth_header else ''
-
-def require_empty_query_string(func):
-    def fail_on_query_string(*args, **kwargs):
-        if request.query_string:
-            response = json_utils.gen_response(success=False, msg='Query string must be empty.')
-            return make_response(jsonify(response), 400)
-        else:
-            return func(*args, **kwargs)
-    return fail_on_query_string
-    
+  
 class Register(Resource):
     """ The Register endpoint is for creating a new user.
 
@@ -45,7 +16,7 @@ class Register(Resource):
     post -- register a new user
     """
 
-    @require_empty_query_string
+    @authentication.require_empty_query_string
     def post(self):
         """ Given an email and password, creates a user and returns their authentication credentials.
 
@@ -113,7 +84,7 @@ class Confirm(Resource):
     patch -- obtain the email confirmation token of a user; verify the user account
     """
 
-    @require_empty_query_string
+    @authentication.require_empty_query_string
     def patch(self, token):
         """Verifies the email and app acount of the user.
 
@@ -141,7 +112,7 @@ class Login(Resource):
     post -- login an existing user
     """
 
-    @require_empty_query_string
+    @authentication.require_empty_query_string
     def post(self):
         """Given an email and a password, verifies the credentials and returns authentication credentials.
 
@@ -196,8 +167,8 @@ class Status(Resource):
     get -- obtain the id of a user; authentication token required
     """
 
-    @require_auth_token
-    @require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self):
         """Returns the id of the user corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
 
@@ -212,7 +183,7 @@ class Status(Resource):
             }
         }
         """
-        auth_token = get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
 
         u_id = models.User.decode_auth_token(auth_token)
         if not isinstance(u_id, str):
@@ -231,8 +202,8 @@ class Logout(Resource):
     get -- log a user out; authentication token required
     """
 
-    @require_auth_token
-    @require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self):
         """Log out the user who corresponds to the authentication token found in the Authorizaton field. Error if the token is invalid
 
@@ -244,7 +215,7 @@ class Logout(Resource):
             'status': 'success'
         }
         """
-        auth_token = get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
 
         u_id = models.User.decode_auth_token(auth_token)
         if not isinstance(u_id, str):

@@ -2,8 +2,7 @@ from flask import request, make_response, jsonify, send_file
 from flask_restful import Resource, reqparse
 
 from app.mod_api import models
-from app.mod_api.resources import auth
-from app.mod_api.resources.rest_tools import json_utils, validators
+from app.mod_api.resources.rest_tools import authentication, json_utils, validators
 
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
@@ -19,8 +18,8 @@ class VideoFiles(Resource):
     All requests require the client to pass the video id of the target video.
     """
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self, video_id):
         """Given a video id, return the file associated with it. The user must provide a valid authentication token.
 
@@ -29,7 +28,7 @@ class VideoFiles(Resource):
         Response: HTTP 200 OK
                   video file
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         video = models.Video.get_video_by_id(video_id)
 
         if video:
@@ -48,8 +47,8 @@ class Thumbnails(Resource):
     All requests require the client to pass the video id of the target video.
     """
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self, video_id):
         """Given a video id, return the thumbnail associated with it. The user must provide a valid authentication token.
 
@@ -58,7 +57,7 @@ class Thumbnails(Resource):
         Response: HTTP 200 OK
                   thumbnail file
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         video = models.Video.get_video_by_id(video_id)
 
         if video:
@@ -83,8 +82,8 @@ class Video(Resource):
     All requests require the client to pass the video of the target video.
     """
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self, video_id):
         """Returns metadata for the video corresponding to the given video id. If the token is invalid, returns an error.
 
@@ -104,7 +103,7 @@ class Video(Resource):
                 }
         }
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
         video = models.Video.get_video_by_id(video_id)
 
@@ -115,8 +114,8 @@ class Video(Resource):
             response = json_utils.gen_response(success=False, msg='Video does not exist.')
             return make_response(jsonify(response), 404)
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def patch(self, video_id):
         """Updates the votes of the video.
 
@@ -151,7 +150,7 @@ class Video(Resource):
             response = json_utils.gen_response(success=False, msg='Bad JSON: upvote required.')
             return make_response(jsonify(response), 401)
 
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
 
         video = models.Video.get_video_by_id(video_id)
@@ -181,8 +180,8 @@ class Video(Resource):
             response = json_utils.gen_response(success=False, msg='You do not own a video with this id.')
             return make_response(jsonify(response), 401)
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def delete(self, video_id):
         """Deletes a video. Requesting user must own the video in order to delete it. If the auth token is invalid, returns an error.
 
@@ -190,7 +189,7 @@ class Video(Resource):
                  Authorization: Bearer auth_token
         Response: HTTP 200 OK
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
         
         video = models.Video.get_video_by_id(video_id)
@@ -212,7 +211,7 @@ class Videos(Resource):
 
     LIMIT = 20
 
-    @auth.require_auth_token
+    @authentication.require_auth_token
     def get(self):
         """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
 
@@ -237,7 +236,7 @@ class Videos(Resource):
                 }
         }
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
 
         parser = reqparse.RequestParser()
@@ -268,8 +267,8 @@ class Videos(Resource):
         response = json_utils.gen_response(data={'videos': video_infos})
         return make_response(jsonify(response), 200)
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def post(self):
         """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
 
@@ -296,7 +295,7 @@ class Videos(Resource):
             response = json_utils.gen_response(success=False, msg=form.errors)
             return make_response(jsonify(response), 400)
 
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
         
         # collect video file and metadata

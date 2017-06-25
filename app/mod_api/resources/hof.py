@@ -2,8 +2,7 @@ from flask import request, make_response, jsonify, send_file
 from flask_restful import Resource, reqparse
 
 from app.mod_api import models
-from app.mod_api.resources import auth
-from app.mod_api.resources.rest_tools import json_utils, validators
+from app.mod_api.resources.rest_tools import authentication, json_utils, validators
 
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
@@ -24,8 +23,8 @@ class HallOfFameFiles(Resource):
     All requests require the client to pass the video id of the target video in the Hall of Fame.
     """
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self, video_id):
         """Given a video id, return the file associated with it. The user must provide a valid authentication token.
 
@@ -34,7 +33,7 @@ class HallOfFameFiles(Resource):
         Response: HTTP 200 OK
                   hof video file
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         video = models.HallOfFame.get_video_by_id(video_id)
 
         if video:
@@ -53,8 +52,8 @@ class HallOfFameThumbnails(Resource):
     All requests require the client to pass the hof video id of the target video.
     """
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self, video_id):
         """Given a video id, return the thumbnail associated with it. The user must provide a valid authentication token.
 
@@ -63,7 +62,7 @@ class HallOfFameThumbnails(Resource):
         Response: HTTP 200 OK
                   thumbnail file
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         video = models.HallOfFame.get_video_by_id(video_id)
 
         if video:
@@ -82,8 +81,8 @@ class HallOfFame(Resource):
     All requests require the client to pass the video of the target video.
     """
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self):
         """Returns metadata for all 10 videos in the Hall Of Fame in descending order w.r.t the video score. If the token is invalid, returns an error.
 
@@ -106,7 +105,7 @@ class HallOfFame(Resource):
                 }
         }
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
 
         videos = models.HallOfFame.sort_desc_and_retrieve_all()

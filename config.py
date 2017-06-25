@@ -25,11 +25,11 @@ class Config(object):
 
     # Use a secure, unique and absolutely secret key for
     # signing the data. 
-    CSRF_SESSION_KEY = "secret"
+    CSRF_SESSION_KEY = "secret" # os.environ['PURVIEW_CSRF_SESSION_KEY']
 
     # Secret key for signing cookies
-    SECRET_KEY = "secret"
-    SECURITY_PASSWORD_SALT = 'my_precious_two'
+    SECRET_KEY = "secret" # os.environ['PURVIEW_SECRET_KEY']
+    SECURITY_PASSWORD_SALT = 'my_precious_two' # os.environ['PURVIEW_SECURITY_PASSWORD_SALT']
 
     # Bcyrpt cryptographic parameters
     BCRYPT_LOG_ROUNDS = 7
@@ -49,8 +49,8 @@ class Config(object):
     MAIL_USE_SSL = True
 
     # gmail authentication
-    MAIL_USERNAME = 'gim04172017@gmail.com' # os.environ['APP_MAIL_USERNAME']
-    MAIL_PASSWORD = 'gordon_ioannis_matthew-333'
+    MAIL_USERNAME = 'gim04172017@gmail.com' # os.environ['PURVIEW_MAIL_USERNAME']
+    MAIL_PASSWORD = 'gordon_ioannis_matthew-333' # os.environ['PURVIEW_MAIL_PASSWORD']
 
     # mail accounts
     MAIL_DEFAULT_SENDER = 'gim04172017@gmail.com'
