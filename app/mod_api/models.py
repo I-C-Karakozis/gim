@@ -13,7 +13,7 @@ import os
 from app import app, db, flask_bcrypt
 from app import video_client
 
-from sqlalchemy import and_, func, case, desc
+from sqlalchemy import and_, func, case, desc, not_
 
 
 HALL_OF_FAME_LIMIT = 10
@@ -273,12 +273,8 @@ class Video(db.Model):
         for tag in tags:
             tag_filter =  and_(tag_filter, Video.tags.any(Tag.name == tag))
         geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
-        videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter, geo_filter)) if tags else Video.query.filter(geo_filter)
-
-        for video in videos:
-            vote = Vote.query.filter_by(u_id=u_id, v_id=video.v_id).first()
-            if vote and vote.flagged:
-                del video
+        flagged_filter = not_(Video.votes.any(and_(Vote.u_id==u_id, Vote.flagged)))
+        videos = Video.query.join(Tag, Video.tags).filter(and_(and_(tag_filter, geo_filter), flagged_filter)) if tags else Video.query.filter(and_(flagged_filter, geo_filter))
 
         # order the videos        
         videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
