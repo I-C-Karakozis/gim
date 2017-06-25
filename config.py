@@ -36,10 +36,10 @@ class Config(object):
 	# Minimum password length
 	MIN_PASS_LEN = 6
 
-# class ProductionConfig(Config):
-#     SQLALCHEMY_DATABASE_URI = os.environ['PURVIEW_MYSQL_URI']
-#     CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
-#     SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
+class ProductionConfig(Config):
+    SQLALCHEMY_DATABASE_URI = os.environ['PURVIEW_MYSQL_URI']
+    CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
+    SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
 
 class TestingConfig(Config):
     TESTING = True
