@@ -124,7 +124,8 @@ class Video(Resource):
         Request: PATCH /Videos/5
                  Authorization: Bearer auth_token
         {
-            'upvote': True 
+            'upvote': False, 
+            'flagged':  True
         }
         }
         Response: HTTP 200 OK
@@ -141,9 +142,10 @@ class Video(Resource):
         schema = {
             "type": "object",
             "properties": {
-                "upvote": {"type": "boolean"}
+                "upvote": {"type": "boolean"},
+                "flagged": {"type": "boolean"}
                 },
-            "required": ["upvote"],
+            "required": ["upvote", "flagged"],
             }
         post_data = request.get_json()
         try:
@@ -159,8 +161,9 @@ class Video(Resource):
         if video:
             old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()
             
-            # repeat of existing vote
-            if old_vote:
+            if post_data['flagged']:
+                old_vote.flag() # repeat of existing vote
+            elif old_vote:
                 # remove vote
                 if old_vote.upvote == post_data['upvote']:
                     old_vote.delete()
@@ -176,7 +179,7 @@ class Video(Resource):
                 'upvotes': len([vt for vt in video.votes if vt.upvote]),
                 'downvotes': len([vt for vt in video.votes if not vt.upvote])
                 }
-            response = json_utils.gen_response(success=True, data = data)
+            response = json_utils.gen_response(success=True, data=data)
             return make_response(jsonify(response), 200)    
         else:
             response = json_utils.gen_response(success=False, msg='You do not own a video with this id.')
@@ -264,7 +267,7 @@ class Videos(Resource):
             response = json_utils.gen_response(success=False, msg='Illegal coordinates entered.')
             return make_response(jsonify(response), 400)
 
-        videos = models.Video.search(lat, lon, tags, min(limit, Videos.LIMIT), offset, sort_by)
+        videos = models.Video.search(lat, lon, u_id, tags, min(limit, Videos.LIMIT), offset, sort_by)
         video_infos = [json_utils.video_info(v, u_id) for v in videos]
         response = json_utils.gen_response(data={'videos': video_infos})
         return make_response(jsonify(response), 200)

@@ -127,6 +127,7 @@ class Vote(db.Model):
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
     vid_id = db.Column(db.Integer, db.ForeignKey('video.v_id'))
     upvote = db.Column(db.Boolean, nullable=False)
+    flagged = db.Column(db.Boolean, nullable=False, default=False)
 
     def __init__(self, u_id, vid_id, upvote):
         self.u_id = u_id
@@ -140,6 +141,11 @@ class Vote(db.Model):
 
     def delete(self):
         db.session.delete(self)
+        db.session.commit()
+
+    def flag(self):
+        self.flagged=True
+        self.upvote=False
         db.session.commit()
 
     # returns 0 if user has not voted the video, 1 if he has upvoted it and -1 if he has downvoted it
@@ -260,7 +266,7 @@ class Video(db.Model):
         return videos.all()       
 
     @staticmethod
-    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):    
+    def search(lat, lon, u_id, tags=[], limit=5, offset=0, sort_by='popular'):    
         lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
         tag_filter = and_()
         tags = tags if tags else []
@@ -269,8 +275,13 @@ class Video(db.Model):
         geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
         videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter, geo_filter)) if tags else Video.query.filter(geo_filter)
 
+        for video in videos:
+            vote = Vote.query.filter_by(u_id=u_id, v_id=video.v_id).first()
+            if vote and vote.flagged:
+                del video
+
         # order the videos        
-        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
+        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
 
         # default to sort_by popularity
         order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()

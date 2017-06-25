@@ -818,7 +818,8 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=True
+                                               upvote=True,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
            
@@ -832,6 +833,7 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
                                             auth=auth
                                             )
 
+            print response.status_code
             assert response.status_code == http.OK
 
             data = json.loads(response.data.decode())
@@ -852,8 +854,10 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=False
+                                               upvote=False,
+                                               flagged=False
                                                )
+            print response.status_code
             assert response.status_code == http.OK
            
             data = json.loads(response.data.decode())
@@ -893,7 +897,8 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                        v_id,
                                        auth=auth2,
-                                       upvote=False
+                                       upvote=False,
+                                       flagged=False
                                        )
 
             assert response.status_code == http.OK
@@ -922,7 +927,8 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                        5,
                                        auth=auth,
-                                       upvote=False
+                                       upvote=False,
+                                       flagged=False
                                        )
 
             assert response.status_code == http.UNAUTH
@@ -958,14 +964,16 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=True
+                                               upvote=True,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
 
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=True
+                                               upvote=True,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
@@ -996,14 +1004,16 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=False
+                                               upvote=False,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
 
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=False
+                                               upvote=False,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
@@ -1035,14 +1045,16 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=True
+                                               upvote=True,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
 
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=False
+                                               upvote=False,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
 
@@ -1071,14 +1083,16 @@ class TestVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=False
+                                               upvote=False,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
 
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=True
+                                               upvote=True,
+                                               flagged=False
                                                )
             assert response.status_code == http.OK
 
