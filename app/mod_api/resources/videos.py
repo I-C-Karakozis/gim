@@ -165,8 +165,8 @@ class Video(Resource):
                 if not old_vote:
                     new_vote = models.Vote(u_id, video_id, post_data['upvote'])       
                     new_vote.commit(insert=True)
-                    new_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()
-                new_vote.flag() 
+                    old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()
+                old_vote.flag() 
             elif old_vote: 
                 # handle repeat of existing vote
                 if old_vote.upvote == post_data['upvote']:

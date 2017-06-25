@@ -153,6 +153,22 @@ class TestPatchVideos(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.UNAUTH
 
+            response = videos_api.patch_video(self.client,
+                                       v_id,
+                                       auth=auth,
+                                       flagged=True
+                                       )
+
+            assert response.status_code == http.UNAUTH
+
+            response = videos_api.patch_video(self.client,
+                                       v_id,
+                                       auth=auth,
+                                       upvote=True
+                                       )
+
+            assert response.status_code == http.UNAUTH
+
     def test_patch_double_upvote(self):
         with self.client:
             # Register a user
@@ -309,3 +325,101 @@ class TestPatchVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
             assert data['data']['user_vote'] == 1
+
+    def test_patch_flag(self):
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+            
+            # Check flagging without existing vote
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               upvote=False,
+                                               flagged=True
+                                               )
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 1
+
+            response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            assert data['data']['user_vote'] == -1
+
+    def test_patch_upvote_flag(self):
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+
+            # Check flagging with existing upvote
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               upvote=True,
+                                               flagged=False
+                                               )
+            assert response.status_code == http.OK
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               upvote=False,
+                                               flagged=True
+                                               )
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 1
+
+            response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            assert data['data']['user_vote'] == -1
+
+    def test_patch_flag_unexpected_json(self):
+        with self.client:
+            # Register a user
+            auth, u_id = users_api.register_user_quick(self.client)
+
+            # Check flagging with existing upvote
+            v_id = videos_api.post_video_quick(self.client,
+                                               auth=auth
+                                               )
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               upvote=True,
+                                               flagged=True
+                                               )
+            assert response.status_code == http.OK
+
+            data = json.loads(response.data.decode())
+            assert data['data']['upvotes'] == 0
+            assert data['data']['downvotes'] == 1
+
+            response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+            assert response.status_code == http.OK
+            data = json.loads(response.data.decode())
+            assert data['data']['user_vote'] == -1

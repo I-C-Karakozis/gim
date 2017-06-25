@@ -86,4 +86,12 @@ def downvote_video(client, v_id, auth):
                        upvote=False,
                        flagged=False
                        )
+
+def flag_video(client, v_id, auth):
+    return patch_video(client,
+                       v_id,
+                       auth=auth,
+                       upvote=False,
+                       flagged=True
+                       )
                   
