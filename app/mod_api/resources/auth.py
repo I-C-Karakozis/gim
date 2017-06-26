@@ -84,22 +84,49 @@ class Confirm(Resource):
     patch -- obtain the email confirmation token of a user; verify the user account
     """
 
-    @authentication.require_empty_query_string
-    def patch(self, token):
+    # @authentication.require_empty_query_string
+    def get(self, token):
         """Verifies the email and app acount of the user.
 
-        Request: PATCH /Confirm/<token>
+        Request: GET /Confirm/<token>
+
+        Response: Web view
+            flash('You have confirmed your account. Thanks!', 'success')
+        """
+        # try:
+        #     print 'hi'
+        #     email = email.confirm_token(token)
+        # except:
+        #     flash('The confirmation link is invalid or has expired.', 'danger')
+        #     return render_template('activated.html')
+        # user = models.User.query.filter_by(email=email).first_or_404()
+        # if user.confirmed:
+        #     flash('Account already confirmed. Please login.', 'success')
+        #     return render_template('activated.html')
+        # else:
+        #     print 1
+        #     user.confirm()
+        print 'hi'
+        return render_template('activated.html')
+
+    def post(self, token):
+        """Verifies the email and app acount of the user.
+
+        Request: GET /Confirm/<token>
 
         Response: Web view
             flash('You have confirmed your account. Thanks!', 'success')
         """
         try:
-            email = confirm_token(token)
+            print 'hi'
+            email = email.confirm_token(token)
         except:
             flash('The confirmation link is invalid or has expired.', 'danger')
-        user = User.query.filter_by(email=email).first_or_404()
+            return render_template('activated.html')
+        user = models.User.query.filter_by(email=email).first_or_404()
         if user.confirmed:
             flash('Account already confirmed. Please login.', 'success')
+            return render_template('activated.html')
         else:
             print 1
             user.confirm()

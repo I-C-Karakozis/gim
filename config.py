@@ -55,10 +55,11 @@ class Config(object):
     # mail accounts
     MAIL_DEFAULT_SENDER = 'gim04172017@gmail.com'
 
-class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = os.environ['PURVIEW_MYSQL_URI']
-    CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
-    SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
+# class ProductionConfig(Config):
+#     DEBUG = False
+#     SQLALCHEMY_DATABASE_URI = os.environ['PURVIEW_MYSQL_URI']
+#     CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
+#     SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
 
 class TestingConfig(Config):
     # enable testing to block emailing during unit testing

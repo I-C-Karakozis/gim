@@ -25,7 +25,7 @@ api_v1.add_resource(users.User, '/Users/<int:user_id>')
 
 # authentication routes
 api_v1.add_resource(auth.Register, '/Auth/Register')
-api_v1.add_resource(auth.Confirm, '/Auth/Confirm/<token>')
+api_v1.add_resource(auth.Confirm, '/Auth/Confirm/<string:token>')
 api_v1.add_resource(auth.Login, '/Auth/Login')
 api_v1.add_resource(auth.Status, '/Auth/Status')
 api_v1.add_resource(auth.Logout, '/Auth/Logout')

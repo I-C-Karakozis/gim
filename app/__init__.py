@@ -6,11 +6,11 @@ from flask_mail import Mail
 # Define the WSGI application object
 app = Flask(__name__)
 
-# set maximum upload file size to 100 MB
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
-
 # Configurations
 app.config.from_object('config.TestingConfig')
+
+# set maximum upload file size to 100 MB
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 # Define mail
 mail = Mail(app)
@@ -36,3 +36,6 @@ app.register_blueprint(api_module)
 # Build the database:
 # This will create the database file using SQLAlchemy
 db.create_all()
+
+# import views
+#import app.views
