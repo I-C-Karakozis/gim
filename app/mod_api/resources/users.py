@@ -55,6 +55,7 @@ class User(Resource):
                 "new_password": {"type": "string"}
                 },
             "required": ["password", "new_password"],
+            "additionalProperties": False
             }
         post_data = request.get_json()
         try:

@@ -146,6 +146,7 @@ class Video(Resource):
                 "flagged": {"type": "boolean"}
                 },
             "required": ["upvote", "flagged"],
+            "additionalProperties": False
             }
         post_data = request.get_json()
         try:
@@ -159,14 +160,10 @@ class Video(Resource):
 
         video = models.Video.get_video_by_id(video_id)
         if video:
-            old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()
-            
+            old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()            
             if post_data['flagged']:
-                if not old_vote:
-                    new_vote = models.Vote(u_id, video_id, post_data['upvote'])       
-                    new_vote.commit(insert=True)
-                    old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()
-                old_vote.flag() 
+                new_flag = models.Flag(u_id, video_id)       
+                new_flag.commit(insert=True)
             elif old_vote: 
                 # handle repeat of existing vote
                 if old_vote.upvote == post_data['upvote']:

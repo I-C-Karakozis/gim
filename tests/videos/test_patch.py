@@ -344,9 +344,10 @@ class TestPatchVideos(GimTestCase.GimFreshDBTestCase):
                                                )
             assert response.status_code == http.OK
 
+            # test no effect on vote
             data = json.loads(response.data.decode())
             assert data['data']['upvotes'] == 0
-            assert data['data']['downvotes'] == 1
+            assert data['data']['downvotes'] == 0
 
             response = videos_api.get_video(self.client,
                                                 v_id,
@@ -354,11 +355,11 @@ class TestPatchVideos(GimTestCase.GimFreshDBTestCase):
                                                 )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
-            assert data['data']['user_vote'] == -1
+            assert data['data']['user_vote'] == 0
 
     def test_patch_upvote_flag(self):
         with self.client:
-            # Register a user
+            # Register users
             auth, u_id = users_api.register_user_quick(self.client)
 
             # Check flagging with existing upvote
@@ -383,8 +384,8 @@ class TestPatchVideos(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
 
             data = json.loads(response.data.decode())
-            assert data['data']['upvotes'] == 0
-            assert data['data']['downvotes'] == 1
+            assert data['data']['upvotes'] == 1
+            assert data['data']['downvotes'] == 0
 
             response = videos_api.get_video(self.client,
                                                 v_id,
@@ -392,11 +393,11 @@ class TestPatchVideos(GimTestCase.GimFreshDBTestCase):
                                                 )
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())
-            assert data['data']['user_vote'] == -1
+            assert data['data']['user_vote'] == 1
 
-    def test_patch_flag_unexpected_json(self):
+    def test_patch_downvote_flag(self):
         with self.client:
-            # Register a user
+            # Register users
             auth, u_id = users_api.register_user_quick(self.client)
 
             # Check flagging with existing upvote
@@ -407,7 +408,15 @@ class TestPatchVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                                v_id,
                                                auth=auth,
-                                               upvote=True,
+                                               upvote=False,
+                                               flagged=False
+                                               )
+            assert response.status_code == http.OK
+
+            response = videos_api.patch_video(self.client,
+                                               v_id,
+                                               auth=auth,
+                                               upvote=False,
                                                flagged=True
                                                )
             assert response.status_code == http.OK

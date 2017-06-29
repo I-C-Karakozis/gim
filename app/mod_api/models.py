@@ -127,7 +127,6 @@ class Vote(db.Model):
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
     vid_id = db.Column(db.Integer, db.ForeignKey('video.v_id'))
     upvote = db.Column(db.Boolean, nullable=False)
-    flagged = db.Column(db.Boolean, nullable=False, default=False)
 
     def __init__(self, u_id, vid_id, upvote):
         self.u_id = u_id
@@ -143,11 +142,6 @@ class Vote(db.Model):
         db.session.delete(self)
         db.session.commit()
 
-    def flag(self):
-        self.flagged=True
-        self.upvote=False
-        db.session.commit()
-
     # returns 0 if user has not voted the video, 1 if he has upvoted it and -1 if he has downvoted it
     @staticmethod
     def get_vote(u_id, vid_id):
@@ -160,6 +154,24 @@ class Vote(db.Model):
         else:
             return 0
 
+class Flag(db.Model):
+    flag_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
+    v_id = db.Column(db.Integer, db.ForeignKey('video.v_id'))
+
+    def __init__(self, u_id, v_id):
+        self.u_id = u_id
+        self.v_id = v_id
+
+    def commit(self, insert=False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
 class Video(db.Model):
     v_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
@@ -169,6 +181,7 @@ class Video(db.Model):
     lon = db.Column(db.Float(precision=8), nullable=False)
     tags = db.relationship('Tag', secondary=tags, backref=db.backref('videos', lazy='dynamic'))
     votes = db.relationship('Vote', backref='video', lazy='dynamic')
+    flags = db.relationship('Flag', backref='video', lazy='dynamic')
     filepath = db.Column(db.String(84), nullable=False)
 
     def __init__(self, video, u_id, lat, lon):
@@ -235,6 +248,11 @@ class Video(db.Model):
         for vote in expired_votes:
             vote.delete()
 
+        # delete flags associated with video
+        expired_flags = Flag.query.filter_by(v_id = self.v_id)
+        for flag in expired_flags:
+            flag.delete()
+
         # delete the video
         video_client.delete_videos([self.filepath])
         db.session.delete(self)
@@ -273,7 +291,7 @@ class Video(db.Model):
         for tag in tags:
             tag_filter =  and_(tag_filter, Video.tags.any(Tag.name == tag))
         geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
-        flagged_filter = not_(Video.votes.any(and_(Vote.u_id==u_id, Vote.flagged)))
+        flagged_filter = not_(Video.flags.any(Flag.u_id==u_id))
         videos = Video.query.join(Tag, Video.tags).filter(and_(and_(tag_filter, geo_filter), flagged_filter)) if tags else Video.query.filter(and_(flagged_filter, geo_filter))
 
         # order the videos        
