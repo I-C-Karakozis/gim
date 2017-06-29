@@ -127,13 +127,16 @@ class Vote(db.Model):
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
     vid_id = db.Column(db.Integer, db.ForeignKey('video.v_id'))
     upvote = db.Column(db.Boolean, nullable=False)
+    voted_on = db.Column(db.DateTime, nullable=False)
 
     def __init__(self, u_id, vid_id, upvote):
         self.u_id = u_id
         self.vid_id = vid_id
         self.upvote = upvote
+        self.voted_on = datetime.datetime.now()
 
     def commit(self, insert=False):
+        self.voted_on = datetime.datetime.now()
         if insert:
             db.session.add(self)
         db.session.commit()
@@ -269,19 +272,23 @@ class Video(db.Model):
     def get_videos_by_user_id(u_id):
         videos = Video.query.filter_by(u_id=u_id) 
 
+        # most recent videos returned first
         order = Video.uploaded_on.desc()
         videos = videos.order_by(order)
 
         return videos.all()  
 
     @staticmethod
-    def get_liked_videos_by_user_id(u_id):
-        videos = Video.query.join(Video.votes).filter(and_(Vote.u_id == u_id, Vote.upvote))
+    def get_liked_videos_by_user_id(u_id):        
+        # most recently voted videos returned first
+        order = Vote.voted_on.desc()
+        votes = Vote.query.filter_by(u_id=u_id, upvote=True).order_by(order)
+        
+        videos = list()
+        for vote in votes:
+            videos.append(Video.query.filter_by(v_id=vote.vid_id).first())
 
-        order = Video.uploaded_on.desc()
-        videos = videos.order_by(order)
-
-        return videos.all()       
+        return videos       
 
     @staticmethod
     def search(lat, lon, u_id, tags=[], limit=5, offset=0, sort_by='popular'):    

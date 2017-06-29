@@ -143,6 +143,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             cron.delete_expired()            
             v_id = video_api.post_video_quick(self.client, auth=auth)
 
+            # delete user
             response = api.delete_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
@@ -152,12 +153,14 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             data = json.loads(response.data.decode())
             assert data['data']['user_id'] == u_id 
 
+            # attempt to get user
             response = api.get_user(self.client,
                                        u_id = u_id,
                                        auth = auth,
                                     )
             assert response.status_code == http.NOT_FOUND
 
+            # attempt to get his videos
             response = video_api.get_video(self.client,
                                             v_id,
                                             auth=auth
@@ -207,7 +210,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             videos = data['data']['videos']          
             assert len(videos) == 1
 
-    def test_delete_invalid_noPassword(self):
+    def test_delete_invalid_no_password(self):
         with self.client:
             # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
@@ -278,7 +281,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             videos = data['data']['videos']          
             assert len(videos) == 1
 
-    def test_patch_valid_testNewPassword(self):
+    def test_patch_valid_new_password(self):
         with self.client:
             # register a user
             auth, u_id = api.register_user_quick(self.client)
@@ -301,7 +304,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.OK
 
-    def test_patch_valid_testInvalidOldPassword(self):
+    def test_patch_invalid_old_password(self):
         with self.client:
             # register a user
             response = api.register_user(self.client, 
@@ -363,7 +366,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.NOT_FOUND
 
 
-    def test_patch_invalid_noPassword(self):
+    def test_patch_invalid_no_password(self):
         with self.client:
             # register a user
             response = api.register_user(self.client, 
@@ -398,7 +401,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.NOT_FOUND
 
-    def test_patch_invalid_noNewPassword(self):
+    def test_patch_invalid_no_new_password(self):
         with self.client:
             # register a user
             auth, u_id = api.register_user_quick(self.client) 
@@ -476,7 +479,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
 
             data = json.loads(response.data.decode())
-            videos = data['data']['videos']
+            videos = data['data']['user_videos']
             
             assert response.status_code == http.OK
             assert len(videos) == 0  
@@ -508,10 +511,10 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             data = json.loads(response.data.decode())
 
             intended_order = [video_ids[content] for content in reversed(contents)]
-            returned_order = [x['video_id'] for x in data['data']['videos']]
+            returned_order = [x['video_id'] for x in data['data']['user_videos']]
 
             assert response.status_code == http.OK
-            assert len(data['data']['videos']) == 5
+            assert len(data['data']['user_videos']) == 5
             assert returned_order == intended_order
 
             response = api.get_user(self.client,
@@ -522,8 +525,8 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             data = json.loads(response.data.decode())
 
             assert response.status_code == http.OK
-            assert len(data['data']['videos']) == 1
-            assert v_id == data['data']['videos'][0]['video_id']
+            assert len(data['data']['user_videos']) == 1
+            assert v_id == data['data']['user_videos'][0]['video_id']
 
     def test_get_liked_videos_no_votes(self):
         with self.client:
@@ -585,7 +588,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert len(videos) == 1  
             assert v_id1 == data['data']['liked_videos'][0]['video_id']
 
-    def test_get_all_user_videos_mixed_votes(self):
+    def test_get_liked_videos_mixed_votes(self):
         with self.client:
             upvoted = ['a', 'b', 'c']
             downvoted = ['d', 'e']
@@ -594,24 +597,25 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                                     email='gim2@gim.com'
                                                     )
 
-            video_ids = {}
+            video_ids = list()
             for content in upvoted:
                 v_id = video_api.post_video_quick(self.client,
                                                    auth=auth2
                                                    )
-                video_ids[content] = v_id
+                video_ids.append(v_id)
 
+            # like videos in reverse order than the one posted
+            for v_id in reversed(video_ids):
                 video_api.upvote_video(self.client,
                                    v_id,
                                    auth=auth1
                                    )
 
+
             for content in downvoted:
                 v_id = video_api.post_video_quick(self.client,
                                                    auth=auth2
                                                    )
-                video_ids[content] = v_id
-
                 video_api.downvote_video(self.client,
                                    v_id,
                                    auth=auth1
@@ -622,8 +626,9 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     auth = auth1
                                     )
 
+            # ensure videos are in the order of the most recently liked to the least recently liked
             data = json.loads(response.data.decode())
-            intended_order = [video_ids[content] for content in reversed(upvoted)]
+            intended_order = [v_id for v_id in video_ids]
             returned_order = [x['video_id'] for x in data['data']['liked_videos']]
 
             assert response.status_code == http.OK

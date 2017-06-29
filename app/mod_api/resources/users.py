@@ -115,7 +115,7 @@ class User(Resource):
                 'registered_on': user.registered_on ,
                 'last_active_on': user.last_active_on ,
                 'score': 22,
-                'videos': 
+                'user_videos': 
                         [
                             {
                                 'video_id': 5,
@@ -168,7 +168,7 @@ class User(Resource):
                     'registered_on': user.registered_on ,
                     'last_active_on': user.last_active_on ,
                     'score': int(user.get_score()),
-                    'videos': videos_info,
+                    'user_videos': videos_info,
                     'liked_videos': liked_videos_info
                     }
             response = json_utils.gen_response(data=data)
