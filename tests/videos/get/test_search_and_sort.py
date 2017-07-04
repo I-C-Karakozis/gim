@@ -46,37 +46,8 @@ class TestGetVideos(GimTestCase.GimFreshDBTestCase):
 
     def test_get_all_by_popularity(self):
         with self.client:
-            contents = ['a', 'b', 'c', 'd', 'e']
-            net_votes = [0, -1, 1, 2, -2]
-            auth1, u_id1 = users_api.register_user_quick(self.client,
-                                                         email='gim@gim.com'
-                                                         )
-            auth2, u_id2 = users_api.register_user_quick(self.client,
-                                                         email='gim2@gim.com'
-                                                         )
+            auth1, auth2, intended_order = videos_api.generate_sample_feed(self.client, sortBy='popularity')            
 
-            video_ids = []
-            for content in contents:
-                v_id = videos_api.post_video_quick(self.client,
-                                                   auth=auth1
-                                                   )
-                video_ids.append(v_id)
-
-            # upvote videos according to net_votes
-            auths = (auth1, auth2)
-            for net_vote, video_id in zip(net_votes, video_ids):
-                upvotes = max(net_vote, 0)
-                downvotes = abs(min(net_vote, 0))
-                for i in range(upvotes):
-                    videos_api.upvote_video(self.client,
-                                            video_id,
-                                            auth=auths[i]
-                                            )
-                for j in range(downvotes):
-                    videos_api.downvote_video(self.client,
-                                              video_id,
-                                              auth=auths[-(j+1)]
-                                              )
             response = videos_api.get_all_videos(self.client,
                                                  auth=auth1,
                                                  tags=[],
@@ -86,13 +57,6 @@ class TestGetVideos(GimTestCase.GimFreshDBTestCase):
                                                  sortBy='popular'
                                                  )
             data = json.loads(response.data.decode())
-            
-            intended_order = map(lambda x: x[1], 
-                                 sorted(zip(net_votes, video_ids),
-                                        cmp=lambda x, y: x[0] - y[0],
-                                        reverse=True
-                                        )
-                                 ) 
             returned_order = [x['video_id'] for x in data['data']['videos']]
 
             assert response.status_code == http.OK
