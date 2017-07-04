@@ -7,7 +7,6 @@ from app.mod_api.resources import json_utils
 from app.mod_api.resources import validators
 
 from werkzeug.datastructures import CombinedMultiDict
-from jsonschema import validate
 
 def hof_video_info(video):
     return {
@@ -22,7 +21,7 @@ class HallOfFameFiles(Resource):
     This endpoint supports the following http requests:
     get -- returns the file associated with the given video id; authentication token required
 
-    All requests require the client to pass the video id of the target video in the Hall of Fame.
+    All requests require the client to pass the video id of the target video isn the Hall of Fame.
     """
 
     @auth.require_auth_token

@@ -127,14 +127,16 @@ class TestDeleteExpiredVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.patch_video(self.client,
                                             v_id,
                                             auth=auth,
-                                            upvote=True
+                                            upvote=True,
+                                            flagged=False
                                             )
             assert response.status_code == http.OK
 
             response = videos_api.patch_video(self.client,
                                             v_id,
                                             auth=auth2,
-                                            upvote=True
+                                            upvote=True,
+                                            flagged=False
                                             )
             assert response.status_code == http.OK
 

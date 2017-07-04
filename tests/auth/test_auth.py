@@ -17,6 +17,25 @@ user = models.User(
 )
 
 class TestAuth(GimTestCase.GimFreshDBTestCase):
+    def test_auth_schema_bad_inputs(self):
+        with self.client:
+            response = api.post(self.client, '/api/Auth/Register',
+                                         email='goofy@goober.com'
+                                         )
+            assert response.status_code == http.BAD_REQ
+
+            response = api.post(self.client, '/api/Auth/Register',
+                                         password='goofy@goober.com'
+                                         )
+            assert response.status_code == http.BAD_REQ
+
+            response = api.post(self.client, '/api/Auth/Register',
+                                         email=user.email,
+                                         password='password1!',
+                                         wtf='wtf'
+                                         )
+            assert response.status_code == http.BAD_REQ
+
     def test_registration(self):
         with self.client:
             response = api.register_user(self.client, 
@@ -41,7 +60,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             data = json.loads(response.data.decode())
             assert data['status'] == 'failed'
             assert response.content_type == 'application/json'
-            assert response.status_code == http.ACCEPTED
+            assert response.status_code == http.ACCEPTED      
 
     def test_registered_user_login(self):
         with self.client:
@@ -88,6 +107,14 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert data['status'] == 'success'
             assert data['data']['user_id'] > 0
             assert response_user.status_code == http.OK
+
+    def test_bad_token_status(self):
+        with self.client:
+            response_user = api.get_user_status(self.client,
+                                         auth='Bearer ' + 'asdfghjkl')
+            data = json.loads(response_user.data.decode())
+            assert data['status'] == 'failed'
+            assert response_user.status_code == http.UNAUTH
             
     def test_valid_logout(self):
         with self.client:

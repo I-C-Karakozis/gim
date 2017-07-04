@@ -13,7 +13,7 @@ import os
 from app import app, db, flask_bcrypt
 from app import video_client
 
-from sqlalchemy import and_, func, case, desc
+from sqlalchemy import and_, func, case, desc, not_
 
 
 HALL_OF_FAME_LIMIT = 10
@@ -127,13 +127,16 @@ class Vote(db.Model):
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
     vid_id = db.Column(db.Integer, db.ForeignKey('video.v_id'))
     upvote = db.Column(db.Boolean, nullable=False)
+    voted_on = db.Column(db.DateTime, nullable=False)
 
     def __init__(self, u_id, vid_id, upvote):
         self.u_id = u_id
         self.vid_id = vid_id
         self.upvote = upvote
+        self.voted_on = datetime.datetime.now()
 
     def commit(self, insert=False):
+        self.voted_on = datetime.datetime.now()
         if insert:
             db.session.add(self)
         db.session.commit()
@@ -154,6 +157,24 @@ class Vote(db.Model):
         else:
             return 0
 
+class Flag(db.Model):
+    flag_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
+    v_id = db.Column(db.Integer, db.ForeignKey('video.v_id'))
+
+    def __init__(self, u_id, v_id):
+        self.u_id = u_id
+        self.v_id = v_id
+
+    def commit(self, insert=False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
 class Video(db.Model):
     v_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
@@ -163,6 +184,7 @@ class Video(db.Model):
     lon = db.Column(db.Float(precision=8), nullable=False)
     tags = db.relationship('Tag', secondary=tags, backref=db.backref('videos', lazy='dynamic'))
     votes = db.relationship('Vote', backref='video', lazy='dynamic')
+    flags = db.relationship('Flag', backref='video', lazy='dynamic')
     filepath = db.Column(db.String(84), nullable=False)
 
     def __init__(self, video, u_id, lat, lon):
@@ -229,6 +251,11 @@ class Video(db.Model):
         for vote in expired_votes:
             vote.delete()
 
+        # delete flags associated with video
+        expired_flags = Flag.query.filter_by(v_id = self.v_id)
+        for flag in expired_flags:
+            flag.delete()
+
         # delete the video
         video_client.delete_videos([self.filepath])
         db.session.delete(self)
@@ -242,42 +269,53 @@ class Video(db.Model):
         return Video.query.filter_by(v_id=_id).first()
 
     @staticmethod
-    def get_videos_by_user_id(u_id):
-        videos = Video.query.filter_by(u_id=u_id) 
+    def get_videos_by_user_id(u_id, limit=5, offset=0, sort_by='recent'):           
+        videos = Video.query.filter_by(u_id=u_id)
 
+        # order the videos; default to sort_by recency        
         order = Video.uploaded_on.desc()
-        videos = videos.order_by(order)
+        if sort_by == 'popular':
+            videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()  
 
-        return videos.all()  
+        return Video.order_limit_offset_videos(videos, limit, offset, order) 
 
     @staticmethod
-    def get_liked_videos_by_user_id(u_id):
-        videos = Video.query.join(Video.votes).filter(and_(Vote.u_id == u_id, Vote.upvote))
+    def get_liked_videos_by_user_id(u_id, limit=5, offset=0, sort_by='recent'):        
+        # order the videos; default to sort_by recency 
+        if sort_by == 'popular':
+            videos = Video.query.filter(Video.votes.any(and_(Vote.u_id==u_id, Vote.upvote==True)))
+            videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
+        else:
+            videos = Video.query.join(Vote).filter((and_(Vote.u_id==u_id, Vote.upvote==True)))       
+            order = Vote.voted_on.desc()
 
-        order = Video.uploaded_on.desc()
-        videos = videos.order_by(order)
-
-        return videos.all()       
+        return Video.order_limit_offset_videos(videos, limit, offset, order)      
 
     @staticmethod
-    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):    
-        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
+    def search(lat, lon, u_id, tags=[], limit=5, offset=0, sort_by='popular'):            
+        # fetch videos based on tags, flags and geolocation
         tag_filter = and_()
         tags = tags if tags else []
         for tag in tags:
             tag_filter =  and_(tag_filter, Video.tags.any(Tag.name == tag))
+        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
         geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
-        videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter, geo_filter)) if tags else Video.query.filter(geo_filter)
-
-        # order the videos        
-        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
-
-        # default to sort_by popularity
-        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
-    
+        flagged_filter = not_(Video.flags.any(Flag.u_id==u_id))
+        videos = Video.query.join(Tag, Video.tags).filter(and_(and_(tag_filter, geo_filter), flagged_filter)) if tags else Video.query.filter(and_(flagged_filter, geo_filter))
+        
+        # order the videos; default to sort_by popularity        
+        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
+        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()    
         if sort_by == 'recent':
             order = Video.uploaded_on.desc()
 
+        return Video.order_limit_offset_videos(videos, limit, offset, order)
+
+    @staticmethod
+    def order_limit_offset_videos(videos, limit, offset, order):
+        # order videos
         videos = videos.order_by(order)
 
         # limit videos

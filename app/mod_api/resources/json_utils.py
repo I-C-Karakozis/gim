@@ -8,6 +8,7 @@ auth_schema = {
         "password": {"type": "string"}
         },
     "required": ["email", "password"],
+    "additionalProperties": False
     }
 
 def gen_response(success=True, msg=None, data=None):
