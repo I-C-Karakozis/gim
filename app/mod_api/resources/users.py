@@ -114,30 +114,7 @@ class User(Resource):
                 'email': user.email ,
                 'registered_on': user.registered_on ,
                 'last_active_on': user.last_active_on ,
-                'score': 22,
-                'user_videos': 
-                        [
-                            {
-                                'video_id': 5,
-                                'uploaded_on': ,
-                                'tags': ['tiger', ...],
-                                'upvotes': 46,
-                                'downvotes': 0
-                            }, 
-                            ...
-                        ],
-                'liked_videos': 
-                        [
-                            {
-                                'video_id': 5,
-                                'uploaded_on': ,
-                                'tags': ['tiger', ...],
-                                'upvotes': 46,
-                                'downvotes': 0
-                            }, 
-                            ...
-                        ]
-
+                'score': 22
                 }
         }
         Returns 404 if no user with the given id was found.
@@ -153,23 +130,13 @@ class User(Resource):
             # users meta data
             user = models.User.query.get_or_404(user_id)
             user.commit()
-
-            # user's videos
-            videos = models.Video.get_videos_by_user_id(user_id)
-            videos_info = [json_utils.video_info(v, user_id) for v in videos]
-
-            # videos the user has liked
-            liked_videos = models.Video.get_liked_videos_by_user_id(user_id)
-            liked_videos_info = [json_utils.video_info(v, user_id) for v in liked_videos]
             
             data = {
                     'user_id': user_id ,
                     'email': user.email ,
                     'registered_on': user.registered_on ,
                     'last_active_on': user.last_active_on ,
-                    'score': int(user.get_score()),
-                    'user_videos': videos_info,
-                    'liked_videos': liked_videos_info
+                    'score': int(user.get_score())
                     }
             response = json_utils.gen_response(data=data)
             return make_response(jsonify(response), 200)

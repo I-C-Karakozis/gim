@@ -221,8 +221,10 @@ class Videos(Resource):
     def get(self):
         """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
 
-        Request: GET /Videos?lat=22.0&lon=67.8&tag=t1&tag=t2&sortBy=popular
-                 Authorization: Bearer auth_token
+        Request: GET /Videos?feedType='main'&lat=22.0&lon=67.8&tag=t1&tag=t2&sortBy=popular
+                Required query string arguments: feedType, lat, lon
+                Possible feedTypes: 'main', 'liked', 'created'
+                Authorization: Bearer auth_token
         Response: HTTP 200 OK
         {
             'status': 'success',
@@ -245,17 +247,24 @@ class Videos(Resource):
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
 
-        parser = reqparse.RequestParser()
-        parser.add_argument('lat', type=float, required=True,
-                            help='Latitude required')
-        parser.add_argument('lon', type=float, required=True,
-                            help='Longitude required')
-        parser.add_argument('tag', action='append')
-        parser.add_argument('limit', type=int)
-        parser.add_argument('offset', type=int)
-        parser.add_argument('sortBy', type=str)
-        args = parser.parse_args()
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('feedType', type=str, required=True,
+                                help='Feed Type required')
+            parser.add_argument('lat', type=float, required=True,
+                                help='Latitude required')
+            parser.add_argument('lon', type=float, required=True,
+                                help='Longitude required')
+            parser.add_argument('tag', action='append')
+            parser.add_argument('limit', type=int)
+            parser.add_argument('offset', type=int)
+            parser.add_argument('sortBy', type=str)
+            args = parser.parse_args()
+        except:
+            response = json_utils.gen_response(success=False, msg='Missing one or more required query string arguments (lat, lon or feedType).')
+            return make_response(jsonify(response), 400)
         
+        feedType = args['feedType']
         lat = args['lat']
         lon = args['lon']
         tags = args.get('tag', [])
@@ -268,7 +277,18 @@ class Videos(Resource):
             response = json_utils.gen_response(success=False, msg='Illegal coordinates entered.')
             return make_response(jsonify(response), 400)
 
-        videos = models.Video.search(lat, lon, u_id, tags, min(limit, Videos.LIMIT), offset, sort_by)
+        # fetch appropriate videos
+        if feedType == 'main':
+            videos = models.Video.search(lat, lon, u_id, tags, min(limit, Videos.LIMIT), offset, sort_by)
+        elif feedType == 'created':
+            videos = models.Video.get_videos_by_user_id(u_id, min(limit, Videos.LIMIT), offset, sort_by)
+        elif feedType == 'liked':
+            videos = models.Video.get_liked_videos_by_user_id(u_id, min(limit, Videos.LIMIT), offset, sort_by)
+        else:
+            response = json_utils.gen_response(success=False, msg='Invalid feedType requested')
+            return make_response(jsonify(response), 400)
+
+        # prepare response            
         video_infos = [json_utils.video_info(v, u_id) for v in videos]
         response = json_utils.gen_response(data={'videos': video_infos})
         return make_response(jsonify(response), 200)

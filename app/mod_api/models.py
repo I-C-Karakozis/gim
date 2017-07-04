@@ -269,41 +269,53 @@ class Video(db.Model):
         return Video.query.filter_by(v_id=_id).first()
 
     @staticmethod
-    def get_videos_by_user_id(u_id):
-        # most recent videos returned first
+    def get_videos_by_user_id(u_id, limit=5, offset=0, sort_by='recent'):           
+        videos = Video.query.filter_by(u_id=u_id)
+
+        # order the videos; default to sort_by recency        
         order = Video.uploaded_on.desc()
-        videos = Video.query.filter_by(u_id=u_id).order_by(order).all()
+        if sort_by == 'popular':
+            videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()  
 
-        return videos 
-
-    @staticmethod
-    def get_liked_videos_by_user_id(u_id):        
-        # most recently voted videos returned first
-        order = Vote.voted_on.desc()
-        videos = Video.query.join(Vote).filter((and_(Vote.u_id==u_id, Vote.upvote==True))).order_by(order).all()
-        
-        return videos       
+        return Video.order_limit_offset_videos(videos, limit, offset, order) 
 
     @staticmethod
-    def search(lat, lon, u_id, tags=[], limit=5, offset=0, sort_by='popular'):    
-        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
+    def get_liked_videos_by_user_id(u_id, limit=5, offset=0, sort_by='recent'):        
+        # order the videos; default to sort_by recency 
+        if sort_by == 'popular':
+            videos = Video.query.filter(Video.votes.any(and_(Vote.u_id==u_id, Vote.upvote==True)))
+            videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
+        else:
+            videos = Video.query.join(Vote).filter((and_(Vote.u_id==u_id, Vote.upvote==True)))       
+            order = Vote.voted_on.desc()
+
+        return Video.order_limit_offset_videos(videos, limit, offset, order)      
+
+    @staticmethod
+    def search(lat, lon, u_id, tags=[], limit=5, offset=0, sort_by='popular'):            
+        # fetch videos based on tags, flags and geolocation
         tag_filter = and_()
         tags = tags if tags else []
         for tag in tags:
             tag_filter =  and_(tag_filter, Video.tags.any(Tag.name == tag))
+        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
         geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
         flagged_filter = not_(Video.flags.any(Flag.u_id==u_id))
         videos = Video.query.join(Tag, Video.tags).filter(and_(and_(tag_filter, geo_filter), flagged_filter)) if tags else Video.query.filter(and_(flagged_filter, geo_filter))
-
-        # order the videos        
+        
+        # order the videos; default to sort_by popularity        
         videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
-
-        # default to sort_by popularity
-        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
-    
+        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()    
         if sort_by == 'recent':
             order = Video.uploaded_on.desc()
 
+        return Video.order_limit_offset_videos(videos, limit, offset, order)
+
+    @staticmethod
+    def order_limit_offset_videos(videos, limit, offset, order):
+        # order videos
         videos = videos.order_by(order)
 
         # limit videos
