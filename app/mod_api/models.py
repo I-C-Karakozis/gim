@@ -270,24 +270,18 @@ class Video(db.Model):
 
     @staticmethod
     def get_videos_by_user_id(u_id):
-        videos = Video.query.filter_by(u_id=u_id) 
-
         # most recent videos returned first
         order = Video.uploaded_on.desc()
-        videos = videos.order_by(order)
+        videos = Video.query.filter_by(u_id=u_id).order_by(order).all()
 
-        return videos.all()  
+        return videos 
 
     @staticmethod
     def get_liked_videos_by_user_id(u_id):        
         # most recently voted videos returned first
         order = Vote.voted_on.desc()
-        votes = Vote.query.filter_by(u_id=u_id, upvote=True).order_by(order)
+        videos = Video.query.join(Vote).filter((and_(Vote.u_id==u_id, Vote.upvote==True))).order_by(order).all()
         
-        videos = list()
-        for vote in votes:
-            videos.append(Video.query.filter_by(v_id=vote.vid_id).first())
-
         return videos       
 
     @staticmethod
