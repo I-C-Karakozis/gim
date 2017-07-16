@@ -18,6 +18,7 @@ from sqlalchemy import and_, func, case, desc, not_
 
 HALL_OF_FAME_LIMIT = 10
 FRAMES_PER_SECOND = 23
+DELETE_THRESHOLD = -4
 
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -105,6 +106,11 @@ tags = db.Table('tags',
                 db.Column('tag_id', db.Integer, db.ForeignKey('tag.tag_id')),
                 db.Column('video_id', db.Integer, db.ForeignKey('video.v_id'))
                 )
+
+banned_tags = db.Table('banned_tags',
+                        db.Column('tag_id', db.Integer, db.ForeignKey('tag.tag_id')),
+                        db.Column('banned_video_id', db.Integer, db.ForeignKey('banned__video.bv_id'))
+                        )
 
 class Tag(db.Model):
     tag_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -229,6 +235,17 @@ class Video(db.Model):
     def net_votes(self):
         return sum((1 if vote.upvote else -1 for vote in self.votes))
 
+    def delete_status(self):
+        score = self.net_votes() - 2 * Flag.query.filter_by(v_id=self.v_id).count()
+        if score < DELETE_THRESHOLD:
+            banned_video = Banned_Video(self)
+            banned_video.commit(insert=True)
+
+            self.delete()
+            return True
+        else:
+            return False
+
     def commit(self, insert=False):
         if insert:
             db.session.add(self)
@@ -326,23 +343,37 @@ class Video(db.Model):
 
         return videos.all()
 
-class BlacklistToken(db.Model):
-    t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    token = db.Column(db.String(500), unique=True, nullable=False)
-    blacklisted_on = db.Column(db.DateTime, nullable=False)
+class Banned_Video(db.Model):
+    bv_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
+    uploaded_on = db.Column(db.DateTime, nullable=False)
+    lat = db.Column(db.Float(precision=8), nullable=False)
+    lon = db.Column(db.Float(precision=8), nullable=False)
+    tags = db.relationship('Tag', secondary=banned_tags, backref=db.backref('banned_videos', lazy='dynamic'))
+    filepath = db.Column(db.String(84), nullable=False)
+    warned = db.Column(db.Boolean, nullable=False, default=False)
 
-    def __init__(self, token):
-        self.token = token
-        self.blacklisted_on = datetime.datetime.now()
 
-    @staticmethod
-    def check_blacklist(auth_token):
-        res = BlacklistToken.query.filter_by(token=str(auth_token)).first()
-        return True if res else False
+    def __init__(self, video):
+        self.u_id = video.u_id
+        self.uploaded_on = video.upload_on
+        self.lat = video.lat
+        self.lon = video.lon
 
-    def __repr__(self):
-        return '<id: token: {}'.format(self.token)
+        # handle video file
+        self.filepath = video.filepath 
+        video_client.upload_banned_video(self.filepath, video.retrieve())   
 
+        # pass tags to banned video
+        for tag in video.tags:
+            t = Tag.get_or_create_tag(tag)
+            if t not in self.tags:
+                self.tags.append(t)
+
+    def commit(self, insert=False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
 
 class HallOfFame(db.Model):
     hof_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -405,8 +436,7 @@ class HallOfFame(db.Model):
             # else:
                 # video.delete_thumbnail()
 
-            video.delete()        
-
+            video.delete()
 
     @staticmethod
     def get_video_by_id(_id):
@@ -426,6 +456,22 @@ class HallOfFame(db.Model):
         hof = hof.order_by(order)
         return hof.first()
 
+class BlacklistToken(db.Model):
+    t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    token = db.Column(db.String(500), unique=True, nullable=False)
+    blacklisted_on = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, token):
+        self.token = token
+        self.blacklisted_on = datetime.datetime.now()
+
+    @staticmethod
+    def check_blacklist(auth_token):
+        res = BlacklistToken.query.filter_by(token=str(auth_token)).first()
+        return True if res else False
+
+    def __repr__(self):
+        return '<id: token: {}'.format(self.token)
 
 # implemented using equirectangular approximation; accurate for small distances
 def boxUser(lat, lon):

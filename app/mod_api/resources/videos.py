@@ -135,7 +135,8 @@ class Video(Resource):
                 {
                     'video_id': 5,
                     'upvotes': 9001,
-                    'downvotes': 666
+                    'downvotes': 666,
+                    'deleted': False
                 }
         }
         """
@@ -161,16 +162,18 @@ class Video(Resource):
         video = models.Video.get_video_by_id(video_id)
         if video:
             old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()            
+            # handle flags
             if post_data['flagged']:
                 new_flag = models.Flag(u_id, video_id)       
                 new_flag.commit(insert=True)
+            # handle repeat of existing vote
             elif old_vote: 
-                # handle repeat of existing vote
                 if old_vote.upvote == post_data['upvote']:
                     old_vote.delete()
                 else:
                     old_vote.upvote = post_data['upvote']
                     old_vote.commit()
+            # handle new vote
             else:   
                 new_vote = models.Vote(u_id, video_id, post_data['upvote'])       
                 new_vote.commit(insert = True)
@@ -178,7 +181,8 @@ class Video(Resource):
             data = {
                 'video_id': video.v_id,
                 'upvotes': len([vt for vt in video.votes if vt.upvote]),
-                'downvotes': len([vt for vt in video.votes if not vt.upvote])
+                'downvotes': len([vt for vt in video.votes if not vt.upvote]),
+                'deleted': video.delete_status()
                 }
             response = json_utils.gen_response(success=True, data=data)
             return make_response(jsonify(response), 200)    
