@@ -4,6 +4,7 @@ These tests are heavily based on https://realpython.com/blog/python/token-based-
 
 from tests import GimTestCase
 from tests import user_helpers as api
+from tests import video_helpers as videos_api
 from tests import http_helpers as http
 
 import time
@@ -101,20 +102,71 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
                                                   password='password1!'
                                                   )
             auth_token = json.loads(response_register.data.decode())['auth_token']
+
             response_user = api.get_user_status(self.client,
                                          auth='Bearer ' + auth_token)
+            assert response_user.status_code == http.OK
             data = json.loads(response_user.data.decode())
             assert data['status'] == 'success'
             assert data['data']['user_id'] > 0
-            assert response_user.status_code == http.OK
+            assert data['data']['warning_id'] == -1
 
     def test_bad_token_status(self):
         with self.client:
             response_user = api.get_user_status(self.client,
-                                         auth='Bearer ' + 'asdfghjkl')
+                                         auth='Bearer ' + 'asdfghjkl')            
+            assert response_user.status_code == http.UNAUTH
             data = json.loads(response_user.data.decode())
             assert data['status'] == 'failed'
-            assert response_user.status_code == http.UNAUTH
+
+    def test_status_banned_video_warning(self):
+        with self.client:
+            # ban video of user
+            auth, u_id = api.register_user_quick(self.client)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
+            videos_api.ban_videos(self.client, [v_id])
+
+            # check if warning id is returned
+            response_user = api.get_user_status(self.client, auth=auth)
+            data = json.loads(response_user.data.decode())
+            assert response_user.status_code == http.OK
+            assert data['data']['warning_id'] >= 0
+
+            # check that warning is not issued twice
+            response_user = api.get_user_status(self.client, auth=auth)
+            data = json.loads(response_user.data.decode())
+            assert response_user.status_code == http.OK
+            assert data['data']['warning_id'] == -1
+
+    def test_status_multiple_banned_video_warning(self):
+        with self.client:
+            # ban two videos of user
+            auth, u_id = api.register_user_quick(self.client)
+            v_id1 = videos_api.post_video_quick(self.client, auth=auth)
+            v_id2 = videos_api.post_video_quick(self.client, auth=auth, content='fu')
+            videos_api.ban_videos(self.client, [v_id1, v_id2])
+
+            # check if warning id is returned
+            response_user = api.get_user_status(self.client, auth=auth)
+            assert response_user.status_code == http.OK
+            data = json.loads(response_user.data.decode())
+            id1 = data['data']['warning_id']
+            assert id1 >= 0            
+
+            # check if warning id is returned
+            response_user = api.get_user_status(self.client, auth=auth)
+            assert response_user.status_code == http.OK
+            data = json.loads(response_user.data.decode())
+            id2 = data['data']['warning_id']
+            assert id2 >= 0
+
+            # ensure different ids
+            assert id1 != id2
+
+            response_user = api.get_user_status(self.client, auth=auth)            
+            assert response_user.status_code == http.OK
+            data = json.loads(response_user.data.decode())
+            assert data['data']['warning_id'] == -1
             
     def test_valid_logout(self):
         with self.client:

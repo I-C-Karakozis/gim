@@ -115,7 +115,7 @@ class User(Resource):
                 'registered_on': user.registered_on ,
                 'last_active_on': user.last_active_on ,
                 'score': 22,
-                'total_warnings': 
+                'total_warnings': 1
                 }
         }
         Returns 404 if no user with the given id was found.
@@ -137,7 +137,8 @@ class User(Resource):
                     'email': user.email ,
                     'registered_on': user.registered_on ,
                     'last_active_on': user.last_active_on ,
-                    'score': int(user.get_score())
+                    'score': int(user.get_score()),
+                    'total_warnings': int(user.count_warnings())
                     }
             response = json_utils.gen_response(data=data)
             return make_response(jsonify(response), 200)

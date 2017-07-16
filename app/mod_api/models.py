@@ -45,6 +45,18 @@ class User(db.Model):
         video_score = 0 if not video_score else video_score
         return votes + video_score + self.stored_score
 
+    def count_warnings(self):
+        return Banned_Video.query.filter_by(u_id=self.u_id).count()
+
+    def get_warning_id(self):
+        banned_video = Banned_Video.query.filter_by(u_id=self.u_id, warned=False).first()
+        if not banned_video:
+            return -1
+        else:
+            banned_video.warned = True
+            banned_video.commit()
+            return banned_video.bv_id
+
     def commit(self, insert = False):
         now = datetime.datetime.now()
         self.last_active_on = now
@@ -352,7 +364,6 @@ class Banned_Video(db.Model):
     tags = db.relationship('Tag', secondary=banned_tags, backref=db.backref('banned_videos', lazy='dynamic'))
     filepath = db.Column(db.String(84), nullable=False)
     warned = db.Column(db.Boolean, nullable=False, default=False)
-
 
     def __init__(self, video):
         self.u_id = video.u_id

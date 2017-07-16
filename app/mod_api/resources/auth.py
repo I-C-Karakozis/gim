@@ -183,7 +183,8 @@ class Status(Resource):
         {
             'status': 'success',
             'data': {
-                'user_id': 5
+                'user_id': 5,
+                'warning_id': 3 (-1 indicates no warning should be issued)
             }
         }
         """
@@ -192,7 +193,8 @@ class Status(Resource):
         u_id = models.User.decode_auth_token(auth_token)
         if not isinstance(u_id, str):
             user = models.User.query.filter_by(u_id=u_id).first()
-            response = json_utils.gen_response(data={'user_id': user.u_id})
+            response = json_utils.gen_response(data={'user_id': user.u_id,
+                                                     'warning_id': int(user.get_warning_id())})
             return make_response(jsonify(response), 200)
         else:
             response = json_utils.gen_response(success=False, msg=u_id)

@@ -5,6 +5,8 @@ import string
 
 import user_helpers as users_api
 
+DELETE_THRESHOLD = -4
+
 def get(client, url, auth):
     return client.get(
         url,
@@ -96,6 +98,15 @@ def flag_video(client, v_id, auth):
                        upvote=False,
                        flagged=True
                        )
+
+def ban_videos(client, v_ids):
+    count = 0
+    for v_id in v_ids:  
+        for i in range(abs(DELETE_THRESHOLD) / 2 + 1):
+                    email='goofy' + str(count) + '@goober.com'
+                    auth, u_id = users_api.register_user_quick(client, email=email)
+                    flag_video(client, v_id, auth)
+                    count = count + 1
 
 def generate_sample_feed(client, sortBy):
     contents = ['a', 'b', 'c', 'd', 'e']
