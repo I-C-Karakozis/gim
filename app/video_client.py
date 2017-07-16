@@ -42,7 +42,7 @@ def upload_video(video, fp, is_hof=False):
 def upload_banned_video(video, fp):
     fp.seek(0)
     with FTPClient('127.0.0.1', '8888') as ftp: # TODO: move to config.py
-        ftp.login('bv_poster', 'password')
+        ftp.login('banned_videos_poster', 'password')
         ftp.storbinary('STOR %s' % video, fp)
 
 def retrieve_thumbnail(thumbnail):

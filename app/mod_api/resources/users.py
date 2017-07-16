@@ -114,7 +114,8 @@ class User(Resource):
                 'email': user.email ,
                 'registered_on': user.registered_on ,
                 'last_active_on': user.last_active_on ,
-                'score': 22
+                'score': 22,
+                'total_warnings': 
                 }
         }
         Returns 404 if no user with the given id was found.

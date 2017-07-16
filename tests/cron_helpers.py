@@ -18,7 +18,7 @@ def delete_expired():
 
 def simulate_hof(client, number_of_videos):
     contents = [str(i) for i in range(number_of_videos)]
-    net_votes = [(math.pow(-1, i) * i) for i in range(number_of_videos)]
+    net_votes = [i for i in range(number_of_videos)]
     emails = [('gim' + contents[i] + '@gim.com') for i in range(number_of_videos)]
 
     auths = []
@@ -36,18 +36,11 @@ def simulate_hof(client, number_of_videos):
 
     # upvote videos according to net_votes
     for net_vote, video_id in zip(net_votes, video_ids):
-        upvotes = max(net_vote, 0)
-        downvotes = abs(min(net_vote, 0))
-        for i in range(int(upvotes)):
+        for i in range(int(net_vote)):
             videos_api.upvote_video(client,
                                     video_id,
                                     auth=auths[i]
                                     )
-        for j in range(int(downvotes)):
-            videos_api.downvote_video(client,
-                                      video_id,
-                                      auth=auths[j]
-                                      )
 
     return net_votes, auths
 

@@ -356,7 +356,7 @@ class Banned_Video(db.Model):
 
     def __init__(self, video):
         self.u_id = video.u_id
-        self.uploaded_on = video.upload_on
+        self.uploaded_on = video.uploaded_on
         self.lat = video.lat
         self.lon = video.lon
 
@@ -366,7 +366,7 @@ class Banned_Video(db.Model):
 
         # pass tags to banned video
         for tag in video.tags:
-            t = Tag.get_or_create_tag(tag)
+            t = Tag.get_or_create_tag(tag.name)
             if t not in self.tags:
                 self.tags.append(t)
 
