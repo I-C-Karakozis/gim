@@ -65,12 +65,18 @@ def delete_video(client, v_id, auth):
 def get_video(client, v_id, auth):
     return get(client, '/api/Videos/%d' % v_id, auth)
 
+def get_banned_video(client, v_id, auth):
+    return get(client, '/api/BannedVideos/%d' % v_id, auth)
+
 def get_all_videos(client, auth, tags=[], **kwargs):
     query_string = '&'.join(['%s=%s' % (k, v) for k,v in kwargs.items()]) + '&' + '&'.join(['tag=%s' % t for t in tags])
     return get(client, '/api/Videos?%s' % query_string, auth)
 
 def get_video_file(client, v_id, auth):
     return get(client, '/api/VideoFiles/%d' %v_id, auth)
+
+def get_banned_video_file(client, v_id, auth):
+    return get(client, '/api/BannedVideoFiles/%d' %v_id, auth)
 
 def get_thumbnail(client, v_id, auth):
     return get(client, '/api/Thumbnails/%d' %v_id, auth)

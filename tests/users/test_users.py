@@ -1,6 +1,6 @@
 from tests import GimTestCase
 from tests import user_helpers as api
-from tests import video_helpers as video_api
+from tests import video_helpers as videos_api
 from tests import hof_helpers as hof_api
 from tests import http_helpers as http
 from tests import cron_helpers as cron
@@ -25,6 +25,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             data = json.loads(response.data.decode())
             assert data['data']['email'] == 'goofy@goober.com'
             assert data['data']['score'] == 0
+            assert data['data']['total_warnings'] == 0
             registered_on = datetime.strptime(data['data']['registered_on'], '%a, %d %b %Y %H:%M:%S %Z')
             response = api.get_user(self.client,
                                     u_id = u_id,
@@ -81,12 +82,12 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                                    )
 
             # user 1 posts video
-            v_id = video_api.post_video_quick(self.client,
+            v_id = videos_api.post_video_quick(self.client,
                                               auth=auth1
                                               )
 
             # user 2 upvotes
-            video_api.upvote_video(self.client,
+            videos_api.upvote_video(self.client,
                                    v_id,
                                    auth=auth2
                                    )
@@ -102,7 +103,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert data['data']['score'] == 1
 
             # user 1 upvotes
-            video_api.upvote_video(self.client,
+            videos_api.upvote_video(self.client,
                                    v_id,
                                    auth=auth1
                                    )
@@ -119,7 +120,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert data['data']['score'] == 3
 
             # user 2 downvotes
-            video_api.downvote_video(self.client,
+            videos_api.downvote_video(self.client,
                                      v_id,
                                      auth=auth2
                                      )
@@ -135,13 +136,26 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
             assert data['data']['score'] == 1
 
+    def test_get_user_total_warnings(self):
+        with self.client:
+            auth, u_id = api.register_user_quick(self.client)
+            v_id1 = videos_api.post_video_quick(self.client, auth=auth)
+            v_id2 = videos_api.post_video_quick(self.client, auth=auth, content='fu')
+            videos_api.ban_videos(self.client, [v_id1, v_id2])
+
+            response = api.get_user(self.client, u_id, auth=auth)
+            data = json.loads(response.data.decode())
+
+            assert response.status_code == http.OK
+            assert data['data']['total_warnings'] == 2
+
     def test_delete_valid(self):
         with self.client:
             # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
-            v_id = video_api.post_video_quick(self.client, auth=auth)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
             cron.delete_expired()            
-            v_id = video_api.post_video_quick(self.client, auth=auth)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
 
             # delete user
             response = api.delete_user(self.client,
@@ -161,7 +175,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.NOT_FOUND
 
             # attempt to get his videos
-            response = video_api.get_video(self.client,
+            response = videos_api.get_video(self.client,
                                             v_id,
                                             auth=auth
                                             )
@@ -178,9 +192,9 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
         with self.client:
             # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
-            v_id = video_api.post_video_quick(self.client, auth=auth)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
             cron.delete_expired()            
-            v_id = video_api.post_video_quick(self.client, auth=auth)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
             
             response = api.delete_user(self.client,
                                        u_id = u_id,
@@ -197,7 +211,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
 
             # test related videos still exist
-            response = video_api.get_video(self.client,
+            response = videos_api.get_video(self.client,
                                             v_id,
                                             auth=auth
                                             )
@@ -214,9 +228,9 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
         with self.client:
             # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
-            v_id = video_api.post_video_quick(self.client, auth=auth)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
             cron.delete_expired()            
-            v_id = video_api.post_video_quick(self.client, auth=auth)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
             
             response = api.delete_user(self.client,
                                        u_id = u_id,
@@ -232,7 +246,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
 
             # test related videos still exist
-            response = video_api.get_video(self.client,
+            response = videos_api.get_video(self.client,
                                             v_id,
                                             auth=auth
                                             )
@@ -249,9 +263,9 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
         with self.client:
             # register a user, a hof video and a regular video
             auth, u_id = api.register_user_quick(self.client)
-            v_id = video_api.post_video_quick(self.client, auth=auth)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
             cron.delete_expired()            
-            v_id = video_api.post_video_quick(self.client, auth=auth)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
             
             response = api.delete_user(self.client,
                                        u_id = 5,
@@ -268,7 +282,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.OK
 
               # test related videos still exist
-            response = video_api.get_video(self.client,
+            response = videos_api.get_video(self.client,
                                             v_id,
                                             auth=auth
                                             )

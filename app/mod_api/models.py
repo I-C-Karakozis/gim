@@ -49,11 +49,11 @@ class User(db.Model):
         return Banned_Video.query.filter_by(u_id=self.u_id).count()
 
     def get_warning_id(self):
-        banned_video = Banned_Video.query.filter_by(u_id=self.u_id, warned=False).first()
+        banned_video = Banned_Video.query.filter_by(u_id=self.u_id, user_warned=False).first()
         if not banned_video:
             return -1
         else:
-            banned_video.warned = True
+            banned_video.user_warned = True
             banned_video.commit()
             return banned_video.bv_id
 
@@ -363,7 +363,7 @@ class Banned_Video(db.Model):
     lon = db.Column(db.Float(precision=8), nullable=False)
     tags = db.relationship('Tag', secondary=banned_tags, backref=db.backref('banned_videos', lazy='dynamic'))
     filepath = db.Column(db.String(84), nullable=False)
-    warned = db.Column(db.Boolean, nullable=False, default=False)
+    user_warned = db.Column(db.Boolean, nullable=False, default=False)
 
     def __init__(self, video):
         self.u_id = video.u_id
@@ -385,6 +385,14 @@ class Banned_Video(db.Model):
         if insert:
             db.session.add(self)
         db.session.commit()
+
+    def retrieve(self):
+        return video_client.retrieve_banned_video(self.filepath)
+
+
+    @staticmethod
+    def get_banned_video_by_id(_id):
+        return Banned_Video.query.filter_by(bv_id=_id).first()
 
 class HallOfFame(db.Model):
     hof_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
