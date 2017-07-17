@@ -110,6 +110,8 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert data['status'] == 'success'
             assert data['data']['user_id'] > 0
             assert data['data']['warning_id'] == -1
+            assert data['data']['vote_restricted'] == False
+            assert data['data']['post_restricted'] == False
 
     def test_bad_token_status(self):
         with self.client:
@@ -130,12 +132,16 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             response_user = api.get_user_status(self.client, auth=auth)
             data = json.loads(response_user.data.decode())
             assert response_user.status_code == http.OK
+            assert data['data']['vote_restricted'] == False
+            assert data['data']['post_restricted'] == False
             assert data['data']['warning_id'] >= 0
 
             # check that warning is not issued twice
             response_user = api.get_user_status(self.client, auth=auth)
             data = json.loads(response_user.data.decode())
             assert response_user.status_code == http.OK
+            assert data['data']['vote_restricted'] == False
+            assert data['data']['post_restricted'] == False
             assert data['data']['warning_id'] == -1
 
     def test_status_multiple_banned_video_warning(self):
@@ -167,6 +173,20 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert response_user.status_code == http.OK
             data = json.loads(response_user.data.decode())
             assert data['data']['warning_id'] == -1
+            
+    def test_status_banned_user(self):
+        with self.client:
+            # ban video of user
+            auth, u_id = api.register_user_quick(self.client)
+            api.ban_user(self.client, auth)
+
+            # check if vote and 
+            response_user = api.get_user_status(self.client, auth=auth)
+            data = json.loads(response_user.data.decode())
+            assert response_user.status_code == http.OK
+            assert data['data']['warning_id'] >= 0
+            assert data['data']['vote_restricted'] == True
+            assert data['data']['post_restricted'] == True
             
     def test_valid_logout(self):
         with self.client:

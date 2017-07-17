@@ -15,10 +15,35 @@ from app import video_client
 
 from sqlalchemy import and_, func, case, desc, not_
 
-
 HALL_OF_FAME_LIMIT = 10
 FRAMES_PER_SECOND = 23
 DELETE_THRESHOLD = -4
+BAN_THRESHOLD = 3
+
+restrictions = db.Table('restrictions',
+                        db.Column('restriction_id', db.Integer, db.ForeignKey('restriction.r_id')),
+                        db.Column('user_id', db.Integer, db.ForeignKey('user.u_id'))
+                        )
+
+class Restriction(db.Model):
+    r_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(20), nullable=False, unique=True)
+
+    def __init__(self, name):
+        self.name = name
+
+    @staticmethod
+    def get_or_create_restriction(name):
+        r = Restriction.query.filter_by(name=name).first()
+        if not r:
+            r = Restriction(name)
+            db.session.add(r)
+            db.session.commit()
+        return r
+
+    @staticmethod
+    def get_restriction_on_user(name, u_id):
+        return Restriction.query.filter(and_(name==name, Restriction.users.any(User.u_id==u_id))).first()
 
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -29,6 +54,7 @@ class User(db.Model):
     registered_on = db.Column(db.DateTime, nullable=False)
     last_active_on = db.Column(db.DateTime, nullable=False)
     stored_score = db.Column(db.Integer, nullable=False)
+    restrictions = db.relationship('Restriction', secondary=restrictions, backref=db.backref('users', lazy='dynamic'))
 
     def __init__(self, email, password):
         self.email = email
@@ -96,6 +122,24 @@ class User(db.Model):
         if insert:
             db.session.add(self)
         db.session.commit()
+
+    def ban(self):
+        if self.count_warnings() >= BAN_THRESHOLD:
+            self.add_restrictions(['post','vote'])         
+            return True
+        else:
+            return False
+
+    def add_restrictions(self, restrictions):
+        for restriction in restrictions:
+            r = Restriction.get_or_create_restriction(restriction)
+            if r not in self.restrictions:
+                self.restrictions.append(r)
+        self.commit()
+
+    @staticmethod
+    def get_user_by_id(_id):
+        return User.query.filter_by(u_id=_id).first()
 
     @staticmethod
     def decode_auth_token(auth_token):
@@ -250,11 +294,14 @@ class Video(db.Model):
     def delete_status(self):
         score = self.net_votes() - 2 * Flag.query.filter_by(v_id=self.v_id).count()
         if score < DELETE_THRESHOLD:
+            # ban video
             banned_video = Banned_Video(self)
             banned_video.commit(insert=True)
-
             self.delete()
-            return True
+
+            # check owner needs to be banned
+            user = User.get_user_by_id(self.u_id)
+            return True, user.ban()
         else:
             return False
 

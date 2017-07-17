@@ -5,6 +5,7 @@ from app.mod_api import models
 from app.mod_api.resources import auth
 from app.mod_api.resources import json_utils
 from app.mod_api.resources import validators
+from app.mod_api.resources.rest_tools import check_restrictions as restrict
 
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
@@ -118,6 +119,7 @@ class Video(Resource):
 
     @auth.require_auth_token
     @auth.require_empty_query_string
+    @restrict.check_vote_restrictions
     def patch(self, video_id):
         """Updates the votes of the video.
 
@@ -299,6 +301,7 @@ class Videos(Resource):
 
     @auth.require_auth_token
     @auth.require_empty_query_string
+    @restrict.check_post_restrictions
     def post(self):
         """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
 

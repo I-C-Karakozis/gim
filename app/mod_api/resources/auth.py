@@ -184,17 +184,25 @@ class Status(Resource):
             'status': 'success',
             'data': {
                 'user_id': 5,
-                'warning_id': 3 (-1 indicates no warning should be issued)
+                'warning_id': 3 (-1 indicates no warning should be issued),
+                'vote_restricted': True,
+                'post_restricted': True 
             }
         }
         """
         auth_token = get_auth_token(request.headers.get('Authorization'))
-
         u_id = models.User.decode_auth_token(auth_token)
+
         if not isinstance(u_id, str):
             user = models.User.query.filter_by(u_id=u_id).first()
+
+            vote_restriction = True if models.Restriction.get_restriction_on_user('vote', u_id) else False
+            post_restriction = True if models.Restriction.get_restriction_on_user('post', u_id) else False
+
             response = json_utils.gen_response(data={'user_id': user.u_id,
-                                                     'warning_id': int(user.get_warning_id())})
+                                                     'warning_id': int(user.get_warning_id()),
+                                                     'vote_restricted': vote_restriction,
+                                                     'post_restricted': post_restriction })
             return make_response(jsonify(response), 200)
         else:
             response = json_utils.gen_response(success=False, msg=u_id)

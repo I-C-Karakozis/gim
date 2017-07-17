@@ -131,3 +131,21 @@ class TestPostVideos(GimTestCase.GimFreshDBTestCase):
                                              )
 
             assert response.status_code == http.FILE_TOO_LARGE
+
+    def test_post_banned_user(self):
+        with self.client:
+            # ban user
+            auth, u_id = users_api.register_user_quick(self.client)
+            users_api.ban_user(self.client, auth)
+
+            # POST to Videos endpoint
+            response = videos_api.post_video(self.client,
+                                             auth=auth,
+                                             video=StringIO.StringIO('abba'),
+                                             tags=[],
+                                             lat=0.0,
+                                             lon=0.0
+                                             )
+            assert response.status_code == http.UNAUTH
+            data = json.loads(response.data.decode())
+            assert data['message'] == 'Posting Restricted.'

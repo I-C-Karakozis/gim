@@ -1,5 +1,9 @@
 import json
 
+import video_helpers as videos_api
+
+BAN_THRESHOLD = 3
+
 def get(client, url, **kwargs):
     return client.get(
         url,
@@ -57,3 +61,9 @@ def register_user_quick(client, email='goofy@goober.com'):
     auth = 'Bearer ' + auth_token
     u_id = data['data']['user_id']
     return auth, u_id
+
+def ban_user(client, auth):
+    v_ids = []
+    for i in range(BAN_THRESHOLD):
+        v_ids.append(videos_api.post_video_quick(client, auth=auth, content=str(i)))
+    videos_api.ban_videos(client, v_ids)
