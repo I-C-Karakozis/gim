@@ -11,105 +11,105 @@ import os
 DELETE_THRESHOLD = -4
 
 class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
-    # def test_downvote_ban(self):
-    #     with self.client:
-    #         auth, u_id = users_api.register_user_quick(self.client)
-    #         v_id = videos_api.post_video_quick(self.client, auth=auth)
+    def test_downvote_ban(self):
+        with self.client:
+            auth, u_id = users_api.register_user_quick(self.client)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
 
-    #         # keep downvoting the video until the video has a score below threshold
-    #         for i in range(abs(DELETE_THRESHOLD - 1)):
-    #             response = videos_api.get_video(self.client,
-    #                                             v_id,
-    #                                             auth=auth
-    #                                             )
-    #             assert response.status_code == http.OK
+            # keep downvoting the video until the video has a score below threshold
+            for i in range(abs(DELETE_THRESHOLD - 1)):
+                response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+                assert response.status_code == http.OK
 
-    #             email='goofy' + str(i) + '@goober.com'
-    #             auth, u_id = users_api.register_user_quick(self.client, email=email)
-    #             videos_api.downvote_video(self.client, v_id, auth)
-
-            
-    #         # test video is not found
-    #         response = videos_api.get_video(self.client,
-    #                                             v_id,
-    #                                             auth=auth
-    #                                             )
-    #         assert response.status_code == http.NOT_FOUND
-
-    # def test_flag_ban(self):
-    #     with self.client:
-    #         auth, u_id = users_api.register_user_quick(self.client)
-    #         v_id = videos_api.post_video_quick(self.client, auth=auth)
-
-    #         # keep flagging the video until the video has a score below threshold
-    #         for i in range(abs(DELETE_THRESHOLD) / 2 + 1):
-    #             response = videos_api.get_video(self.client,
-    #                                             v_id,
-    #                                             auth=auth
-    #                                             )
-    #             assert response.status_code == http.OK
-
-    #             email='goofy' + str(i) + '@goober.com'
-    #             auth, u_id = users_api.register_user_quick(self.client, email=email)
-    #             videos_api.flag_video(self.client, v_id, auth)
-            
-    #         # test video is not found
-    #         response = videos_api.get_video(self.client,
-    #                                             v_id,
-    #                                             auth=auth
-    #                                             )
-    #         assert response.status_code == http.NOT_FOUND
-
-    # def test_downvote_flag_ban(self):
-    #     with self.client:
-    #         auth, u_id = users_api.register_user_quick(self.client)
-    #         v_id = videos_api.post_video_quick(self.client, auth=auth)
-
-    #         # keep downvoting the video until the video has a score below threshold
-    #         for i in range(abs(DELETE_THRESHOLD) / 3 + 1):
-    #             response = videos_api.get_video(self.client,
-    #                                             v_id,
-    #                                             auth=auth
-    #                                             )
-    #             assert response.status_code == http.OK
-
-    #             email='goofy' + str(i) + '@goober.com'
-    #             auth, u_id = users_api.register_user_quick(self.client, email=email)
-    #             videos_api.downvote_video(self.client, v_id, auth)
-    #             videos_api.flag_video(self.client, v_id, auth)
+                email='goofy' + str(i) + '@goober.com'
+                auth, u_id = users_api.register_user_quick(self.client, email=email)
+                videos_api.downvote_video(self.client, v_id, auth)
 
             
-    #         # test video is not found
-    #         response = videos_api.get_video(self.client,
-    #                                             v_id,
-    #                                             auth=auth
-    #                                             )
-    #         assert response.status_code == http.NOT_FOUND
+            # test video is not found
+            response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+            assert response.status_code == http.NOT_FOUND
 
-    # def test_upvote_ban(self):
-    #     with self.client:
-    #         auth, u_id = users_api.register_user_quick(self.client)
-    #         v_id = videos_api.post_video_quick(self.client, auth=auth)
+    def test_flag_ban(self):
+        with self.client:
+            auth, u_id = users_api.register_user_quick(self.client)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
 
-    #         # keep downvoting the video until the video has a score below threshold
-    #         for i in range(abs(DELETE_THRESHOLD - 1)):
-    #             response = videos_api.get_video(self.client,
-    #                                             v_id,
-    #                                             auth=auth
-    #                                             )
-    #             assert response.status_code == http.OK
+            # keep flagging the video until the video has a score below threshold
+            for i in range(abs(DELETE_THRESHOLD) / 2 + 1):
+                response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+                assert response.status_code == http.OK
 
-    #             email='goofy' + str(i) + '@goober.com'
-    #             auth, u_id = users_api.register_user_quick(self.client, email=email)
-    #             videos_api.upvote_video(self.client, v_id, auth)
+                email='goofy' + str(i) + '@goober.com'
+                auth, u_id = users_api.register_user_quick(self.client, email=email)
+                videos_api.flag_video(self.client, v_id, auth)
+            
+            # test video is not found
+            response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+            assert response.status_code == http.NOT_FOUND
+
+    def test_downvote_flag_ban(self):
+        with self.client:
+            auth, u_id = users_api.register_user_quick(self.client)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
+
+            # keep downvoting the video until the video has a score below threshold
+            for i in range(abs(DELETE_THRESHOLD) / 3 + 1):
+                response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+                assert response.status_code == http.OK
+
+                email='goofy' + str(i) + '@goober.com'
+                auth, u_id = users_api.register_user_quick(self.client, email=email)
+                videos_api.downvote_video(self.client, v_id, auth)
+                videos_api.flag_video(self.client, v_id, auth)
 
             
-    #         # test video is not found
-    #         response = videos_api.get_video(self.client,
-    #                                             v_id,
-    #                                             auth=auth
-    #                                             )
-    #         assert response.status_code == http.OK
+            # test video is not found
+            response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+            assert response.status_code == http.NOT_FOUND
+
+    def test_upvote_ban(self):
+        with self.client:
+            auth, u_id = users_api.register_user_quick(self.client)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
+
+            # keep downvoting the video until the video has a score below threshold
+            for i in range(abs(DELETE_THRESHOLD - 1)):
+                response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+                assert response.status_code == http.OK
+
+                email='goofy' + str(i) + '@goober.com'
+                auth, u_id = users_api.register_user_quick(self.client, email=email)
+                videos_api.upvote_video(self.client, v_id, auth)
+
+            
+            # test video is not found
+            response = videos_api.get_video(self.client,
+                                                v_id,
+                                                auth=auth
+                                                )
+            assert response.status_code == http.OK
 
     def test_ban_file_retrieval(self):
         with self.client:
@@ -163,7 +163,7 @@ class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
             assert data['data']['user_id'] == u_id
             assert data['data']['lat'] == 0.0
             assert data['data']['lon'] == 0.0
-            print data['data']['uploaded_on'] # < datetime.now() + timedelta(hours=1)
+            assert datetime.strptime(data['data']['uploaded_on'], '%a, %d %b %Y %H:%M:%S %Z') < datetime.now()
             assert set(data['data']['tags']) == set(tags)
             assert data['data']['user_warned'] == True
 
@@ -171,4 +171,15 @@ class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
             response = videos_api.get_banned_video_file(self.client, bv_id, auth=auth)
             assert response.status_code == http.OK
             assert response.data == contents
+
+    def test_ban_bad_get(self):
+        with self.client:
+            auth, u_id = users_api.register_user_quick(self.client)
+            v_id = videos_api.post_video_quick(self.client, auth=auth)
+
+            # check no video is fetched for get banned video request
+            response = videos_api.get_banned_video(self.client, 1, auth=auth)
+            assert response.status_code == http.NOT_FOUND
+            response = videos_api.get_banned_video_file(self.client, 1, auth=auth)
+            assert response.status_code == http.NOT_FOUND
 
