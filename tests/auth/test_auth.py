@@ -109,7 +109,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             data = json.loads(response_user.data.decode())
             assert data['status'] == 'success'
             assert data['data']['user_id'] > 0
-            assert data['data']['warning_id'] == -1
+            assert len(data['data']['warning_ids']) == 0
             assert data['data']['vote_restricted'] == False
             assert data['data']['post_restricted'] == False
 
@@ -134,7 +134,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert response_user.status_code == http.OK
             assert data['data']['vote_restricted'] == False
             assert data['data']['post_restricted'] == False
-            assert data['data']['warning_id'] >= 0
+            assert len(data['data']['warning_ids']) == 1
 
             # check that warning is not issued twice
             response_user = api.get_user_status(self.client, auth=auth)
@@ -142,7 +142,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert response_user.status_code == http.OK
             assert data['data']['vote_restricted'] == False
             assert data['data']['post_restricted'] == False
-            assert data['data']['warning_id'] == -1
+            assert len(data['data']['warning_ids']) == 0
 
     def test_status_multiple_banned_video_warning(self):
         with self.client:
@@ -156,23 +156,17 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             response_user = api.get_user_status(self.client, auth=auth)
             assert response_user.status_code == http.OK
             data = json.loads(response_user.data.decode())
-            id1 = data['data']['warning_id']
+            assert len(data['data']['warning_ids']) == 2
+            id1 = data['data']['warning_ids'][0]
+            id2 = data['data']['warning_ids'][1]
             assert id1 >= 0            
-
-            # check if warning id is returned
-            response_user = api.get_user_status(self.client, auth=auth)
-            assert response_user.status_code == http.OK
-            data = json.loads(response_user.data.decode())
-            id2 = data['data']['warning_id']
             assert id2 >= 0
-
-            # ensure different ids
             assert id1 != id2
 
             response_user = api.get_user_status(self.client, auth=auth)            
             assert response_user.status_code == http.OK
             data = json.loads(response_user.data.decode())
-            assert data['data']['warning_id'] == -1
+            assert len(data['data']['warning_ids']) == 0
             
     def test_status_banned_user(self):
         with self.client:
@@ -180,11 +174,10 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             auth, u_id = api.register_user_quick(self.client)
             api.ban_user(self.client, auth)
 
-            # check if vote and 
             response_user = api.get_user_status(self.client, auth=auth)
             data = json.loads(response_user.data.decode())
             assert response_user.status_code == http.OK
-            assert data['data']['warning_id'] >= 0
+            assert len(data['data']['warning_ids']) == 3
             assert data['data']['vote_restricted'] == True
             assert data['data']['post_restricted'] == True
             

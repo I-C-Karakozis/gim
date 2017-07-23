@@ -126,7 +126,7 @@ class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
             # check that banned video is located in the banned ftp directory
             response_user = users_api.get_user_status(self.client, auth=auth)
             data = json.loads(response_user.data.decode())
-            bv_id = data['data']['warning_id']
+            bv_id = data['data']['warning_ids'][0]
             response = videos_api.get_banned_video(self.client, bv_id, auth=auth)
             assert response.status_code == http.OK
             response = videos_api.get_banned_video_file(self.client, bv_id, auth=auth)
@@ -154,7 +154,7 @@ class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
             videos_api.ban_videos(self.client, [v_id])
             response_user = users_api.get_user_status(self.client, auth=auth)  
             data = json.loads(response_user.data.decode())          
-            bv_id = data['data']['warning_id']
+            bv_id = data['data']['warning_ids'][0]
 
             # check banned video metadata
             response = videos_api.get_banned_video(self.client, bv_id, auth=auth)

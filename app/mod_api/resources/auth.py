@@ -4,6 +4,7 @@ from flask_restful import Resource
 from app import app, db, flask_bcrypt
 from app.mod_api import models
 from app.mod_api.resources import json_utils
+from app.mod_api.resources.rest_tools import check_permissions as permit
 
 from jsonschema import validate
 import re
@@ -184,7 +185,7 @@ class Status(Resource):
             'status': 'success',
             'data': {
                 'user_id': 5,
-                'warning_id': 3 (-1 indicates no warning should be issued),
+                'warning_ids': [1, 13] (empty array indicates no warning should be issued),
                 'vote_restricted': True,
                 'post_restricted': True 
             }
@@ -196,11 +197,11 @@ class Status(Resource):
         if not isinstance(u_id, str):
             user = models.User.query.filter_by(u_id=u_id).first()
 
-            vote_restriction = True if models.Restriction.get_restriction_on_user('vote', u_id) else False
-            post_restriction = True if models.Restriction.get_restriction_on_user('post', u_id) else False
+            vote_restriction = not user.check_user_permission('vote')
+            post_restriction = not user.check_user_permission('post')
 
             response = json_utils.gen_response(data={'user_id': user.u_id,
-                                                     'warning_id': int(user.get_warning_id()),
+                                                     'warning_ids': user.get_warning_ids(),
                                                      'vote_restricted': vote_restriction,
                                                      'post_restricted': post_restriction })
             return make_response(jsonify(response), 200)

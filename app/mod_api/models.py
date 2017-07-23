@@ -18,35 +18,68 @@ from sqlalchemy import and_, func, case, desc, not_
 HALL_OF_FAME_LIMIT = 10
 FRAMES_PER_SECOND = 23
 DELETE_THRESHOLD = -4
-BAN_THRESHOLD = 3
+RESTRICT_THRESHOLD = 3
+PERMISSIONS = ['post', 'vote', 'access']
+USER_GROUPS = {
+                'member': ['post', 'vote', 'access'],
+                'restricted': ['access'],
+                'banned': []
+               }
 
-restrictions = db.Table('restrictions',
-                        db.Column('restriction_id', db.Integer, db.ForeignKey('restriction.r_id')),
-                        db.Column('user_id', db.Integer, db.ForeignKey('user.u_id'))
+permissions = db.Table('permissions',
+                        db.Column('permission_id', db.Integer, db.ForeignKey('permission.p_id')),
+                        db.Column('group_id', db.Integer, db.ForeignKey('usergroup.group_id'))
                         )
 
-class Restriction(db.Model):
-    r_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+class Permission(db.Model):
+    p_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(20), nullable=False, unique=True)
 
     def __init__(self, name):
         self.name = name
 
     @staticmethod
-    def get_or_create_restriction(name):
-        r = Restriction.query.filter_by(name=name).first()
-        if not r:
-            r = Restriction(name)
-            db.session.add(r)
-            db.session.commit()
-        return r
+    def initialize_permissions():
+        for name in PERMISSIONS:
+            p = Permission.query.filter_by(name=name).first()
+            if not p:
+                p = Permission(name)
+                db.session.add(p)
+                db.session.commit()
 
     @staticmethod
-    def get_restriction_on_user(name, u_id):
+    def get_permissions_on_user(u_id):
         return Restriction.query.filter(and_(name==name, Restriction.users.any(User.u_id==u_id))).first()
+
+class Usergroup(db.Model):
+    group_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(20), nullable=False, unique=True)
+    permissions = db.relationship('Permission', secondary=permissions, backref=db.backref('usergroups', lazy='dynamic'))
+
+    def __init__(self, name):
+        self.name = name
+
+    def add_permissions(self, permissions):
+        for name in permissions:
+            permission = Permission.query.filter_by(name=name).first()
+            if (permission is not None) and (permission not in self.permissions):
+                self.permissions.append(permission)
+        db.session.commit()
+
+    @staticmethod
+    def initialize_user_groups():
+        for name in USER_GROUPS:
+            p = UserGroup.query.filter_by(name=name).first()
+            if not p:
+                p = Usergroup(name)
+                db.session.add(p)
+                db.session.commit()
+                self.add_permissions(USER_GROUPS[name])
+
 
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('usergroup.group_id'))
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     video = db.relationship('Video', backref='user', lazy='dynamic')
@@ -54,7 +87,6 @@ class User(db.Model):
     registered_on = db.Column(db.DateTime, nullable=False)
     last_active_on = db.Column(db.DateTime, nullable=False)
     stored_score = db.Column(db.Integer, nullable=False)
-    restrictions = db.relationship('Restriction', secondary=restrictions, backref=db.backref('users', lazy='dynamic'))
 
     def __init__(self, email, password):
         self.email = email
@@ -64,44 +96,13 @@ class User(db.Model):
         self.last_active_on = now
         self.stored_score = 0
 
-    def get_score(self):
-        votes = Vote.query.filter_by(u_id = self.u_id).count()
-        video_scores = db.session.query(func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).label('net_votes')).select_from(Video).join(Vote).filter(Video.u_id == self.u_id)
-        video_score = db.session.query(func.sum(video_scores.subquery().columns.net_votes)).scalar()
-        video_score = 0 if not video_score else video_score
-        return votes + video_score + self.stored_score
-
-    def count_warnings(self):
-        return Banned_Video.query.filter_by(u_id=self.u_id).count()
-
-    def get_warning_id(self):
-        banned_video = Banned_Video.query.filter_by(u_id=self.u_id, user_warned=False).first()
-        if not banned_video:
-            return -1
-        else:
-            banned_video.user_warned = True
-            banned_video.commit()
-            return banned_video.bv_id
+        self.group_id = Usergroup.query.filter_by(name='member').first().group_id
 
     def commit(self, insert = False):
         now = datetime.datetime.now()
         self.last_active_on = now
         if insert:
             db.session.add(self)
-        db.session.commit()
-
-    def delete(self):
-        # delete videos owned by the user
-        videos = Video.query.filter_by(u_id=self.u_id)
-        for video in videos:
-            video.delete()
-
-        # delete hall of fame videos produced by the user
-        hof_videos = HallOfFame.query.filter_by(u_id=self.u_id)
-        for video in hof_videos:
-            video.delete()
-
-        db.session.delete(self)
         db.session.commit()
 
     def encode_auth_token(self):
@@ -118,24 +119,51 @@ class User(db.Model):
             algorithm='HS256'
             )
 
-    def commit(self, insert=False):
-        if insert:
-            db.session.add(self)
+    def get_score(self):
+        votes = Vote.query.filter_by(u_id = self.u_id).count()
+        video_scores = db.session.query(func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).label('net_votes')).select_from(Video).join(Vote).filter(Video.u_id == self.u_id)
+        video_score = db.session.query(func.sum(video_scores.subquery().columns.net_votes)).scalar()
+        video_score = 0 if not video_score else video_score
+        return votes + video_score + self.stored_score
+
+    def delete(self):
+        # delete videos owned by the user
+        videos = Video.query.filter_by(u_id=self.u_id)
+        for video in videos:
+            video.delete()
+
+        # delete hall of fame videos produced by the user
+        hof_videos = HallOfFame.query.filter_by(u_id=self.u_id)
+        for video in hof_videos:
+            video.delete()
+
+        db.session.delete(self)
         db.session.commit()
 
-    def ban(self):
-        if self.count_warnings() >= BAN_THRESHOLD:
-            self.add_restrictions(['post','vote'])         
+    def check_user_permission(self, permission):
+        usergroup = Usergroup.query.filter_by(group_id=self.group_id).first()
+        permission = Permission.query.filter_by(name=permission).first()
+        if (usergroup is not None) and (permission is not None) and (permission in usergroup.permissions):
             return True
         else:
             return False
 
-    def add_restrictions(self, restrictions):
-        for restriction in restrictions:
-            r = Restriction.get_or_create_restriction(restriction)
-            if r not in self.restrictions:
-                self.restrictions.append(r)
-        self.commit()
+    def count_warnings(self):
+        return Banned_Video.query.filter_by(u_id=self.u_id).count()
+
+    def get_warning_ids(self):
+        banned_videos = Banned_Video.query.filter_by(u_id=self.u_id, user_warned=False)
+        bv_ids = []
+        for video in banned_videos:
+            bv_ids.append(video.bv_id)
+            video.user_warned = True
+            video.commit()
+
+        return bv_ids
+    def restrict(self):
+        if self.count_warnings() >= RESTRICT_THRESHOLD:
+            self.group_id = Usergroup.query.filter_by(name='restricted').first().group_id 
+            self.commit()       
 
     @staticmethod
     def get_user_by_id(_id):
@@ -301,7 +329,9 @@ class Video(db.Model):
 
             # check owner needs to be banned
             user = User.get_user_by_id(self.u_id)
-            return True, user.ban()
+            user.restrict()
+
+            return True 
         else:
             return False
 
