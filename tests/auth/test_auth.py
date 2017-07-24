@@ -12,11 +12,6 @@ import json
 
 from app.mod_api import models
 
-user = models.User(
-    email='spongebob@squarepants.com',
-    password='bikinibottom'
-)
-
 class TestAuth(GimTestCase.GimFreshDBTestCase):
     def test_auth_schema_bad_inputs(self):
         with self.client:
@@ -31,7 +26,7 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert response.status_code == http.BAD_REQ
 
             response = api.post(self.client, '/api/Auth/Register',
-                                         email=user.email,
+                                         email='goofy@goober.com',
                                          password='password1!',
                                          wtf='wtf'
                                          )
@@ -49,14 +44,16 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert response.content_type == 'application/json'
             assert response.status_code == http.CREATED 
 
-    def test_register_with_already_registered_user(self):
-        self.db.session.add(user)
-        self.db.session.commit()
-        
+    def test_register_with_already_registered_user(self):        
         with self.client:
+            email = 'goofy@goober.com'
             response = api.register_user(self.client,
-                                         email=user.email,
+                                         email=email,
                                          password='password1!'
+                                         )
+            response = api.register_user(self.client,
+                                         email=email,
+                                         password='password2!'
                                          )
             data = json.loads(response.data.decode())
             assert data['status'] == 'failed'

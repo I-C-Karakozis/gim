@@ -56,8 +56,10 @@ class Usergroup(db.Model):
     name = db.Column(db.String(20), nullable=False, unique=True)
     permissions = db.relationship('Permission', secondary=permissions, backref=db.backref('usergroups', lazy='dynamic'))
 
-    def __init__(self, name):
+    def __init__(self, name, permissions):
         self.name = name
+        self.add_permissions(permissions)
+
 
     def add_permissions(self, permissions):
         for name in permissions:
@@ -67,14 +69,13 @@ class Usergroup(db.Model):
         db.session.commit()
 
     @staticmethod
-    def initialize_user_groups():
+    def initialize_usergroups():
         for name in USER_GROUPS:
-            p = UserGroup.query.filter_by(name=name).first()
+            p = Usergroup.query.filter_by(name=name).first()
             if not p:
-                p = Usergroup(name)
+                p = Usergroup(name, USER_GROUPS[name])
                 db.session.add(p)
                 db.session.commit()
-                self.add_permissions(USER_GROUPS[name])
 
 
 class User(db.Model):
@@ -96,7 +97,8 @@ class User(db.Model):
         self.last_active_on = now
         self.stored_score = 0
 
-        self.group_id = Usergroup.query.filter_by(name='member').first().group_id
+        usergroup = Usergroup.query.filter_by(name='member').first()
+        self.group_id = usergroup.group_id 
 
     def commit(self, insert = False):
         now = datetime.datetime.now()
@@ -160,6 +162,7 @@ class User(db.Model):
             video.commit()
 
         return bv_ids
+        
     def restrict(self):
         if self.count_warnings() >= RESTRICT_THRESHOLD:
             self.group_id = Usergroup.query.filter_by(name='restricted').first().group_id 

@@ -174,7 +174,8 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
                                     )
             assert response.status_code == http.NOT_FOUND
 
-            # attempt to get his videos
+            # attempt to get deleted user's videos
+            auth, u_id = api.register_user_quick(self.client, email='asdf@gmail.com')
             response = videos_api.get_video(self.client,
                                             v_id,
                                             auth=auth
@@ -182,6 +183,7 @@ class TestUsers_ApiCalls(GimTestCase.GimFreshDBTestCase):
 
             assert response.status_code == http.NOT_FOUND
 
+            # attempt to get deleted user's hof videos
             response = hof_api.get_all_hof_videos(self.client, auth)
             assert response.status_code == http.OK
             data = json.loads(response.data.decode())

@@ -17,7 +17,15 @@ def require_auth_token(func):
         if auth_token:
             u_id = models.User.decode_auth_token(auth_token)
             if not isinstance(u_id, str):
-                return func(*args, **kwargs)
+                user = models.User.query.filter_by(u_id=u_id).first()
+                # check user exists
+                if user is not None:
+                    # update last_active_on
+                    user.commit()
+                    return func(*args, **kwargs)
+                else:
+                    response = json_utils.gen_response(success=False, msg=u_id)
+                    return make_response(jsonify(response), 404)
             else:
                 response = json_utils.gen_response(success=False, msg=u_id)
                 return make_response(jsonify(response), 401)
@@ -193,21 +201,16 @@ class Status(Resource):
         """
         auth_token = get_auth_token(request.headers.get('Authorization'))
         u_id = models.User.decode_auth_token(auth_token)
+        user = models.User.query.filter_by(u_id=u_id).first()
 
-        if not isinstance(u_id, str):
-            user = models.User.query.filter_by(u_id=u_id).first()
+        vote_restriction = not user.check_user_permission('vote')
+        post_restriction = not user.check_user_permission('post')
 
-            vote_restriction = not user.check_user_permission('vote')
-            post_restriction = not user.check_user_permission('post')
-
-            response = json_utils.gen_response(data={'user_id': user.u_id,
-                                                     'warning_ids': user.get_warning_ids(),
-                                                     'vote_restricted': vote_restriction,
-                                                     'post_restricted': post_restriction })
-            return make_response(jsonify(response), 200)
-        else:
-            response = json_utils.gen_response(success=False, msg=u_id)
-            return make_response(jsonify(response), 401)
+        response = json_utils.gen_response(data={'user_id': user.u_id,
+                                                 'warning_ids': user.get_warning_ids(),
+                                                 'vote_restricted': vote_restriction,
+                                                 'post_restricted': post_restriction })
+        return make_response(jsonify(response), 200)
 
                 
 class Logout(Resource):

@@ -36,6 +36,9 @@ class Config(object):
 	# Minimum password length
 	MIN_PASS_LEN = 6
 
+	# set maximum upload file size to 100 MB
+	MAX_CONTENT_LENGTH = 100 * 1024 * 1024
+
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ['PURVIEW_MYSQL_URI']
     CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']

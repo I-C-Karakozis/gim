@@ -129,9 +129,7 @@ class User(Resource):
                 return make_response(jsonify(response), 401)
 
             # users meta data
-            user = models.User.query.get_or_404(user_id)
-            user.commit()
-            
+            user = models.User.query.get_or_404(user_id)            
             data = {
                     'user_id': user_id ,
                     'email': user.email ,
@@ -188,9 +186,7 @@ class User(Resource):
                 response = json_utils.gen_response(success=False, msg="Unauthorized access: You are not allowed to patch that user's information.")
                 return make_response(jsonify(response), 401)
 
-            user = models.User.query.get_or_404(user_id)
-            user.commit()
-          
+            user = models.User.query.get_or_404(user_id)         
             password = post_data.get('password')
 
             if not flask_bcrypt.check_password_hash(user.password_hash, password):
