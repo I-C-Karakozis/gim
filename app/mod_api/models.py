@@ -15,17 +15,6 @@ from app import video_client
 
 from sqlalchemy import and_, func, case, desc, not_
 
-HALL_OF_FAME_LIMIT = 10
-FRAMES_PER_SECOND = 23
-DELETE_THRESHOLD = -4
-RESTRICT_THRESHOLD = 3
-PERMISSIONS = ['post', 'vote', 'access']
-USER_GROUPS = {
-                'member': ['post', 'vote', 'access'],
-                'restricted': ['access'],
-                'banned': []
-               }
-
 permissions = db.Table('permissions',
                         db.Column('permission_id', db.Integer, db.ForeignKey('permission.p_id')),
                         db.Column('group_id', db.Integer, db.ForeignKey('usergroup.group_id'))
@@ -40,7 +29,7 @@ class Permission(db.Model):
 
     @staticmethod
     def initialize_permissions():
-        for name in PERMISSIONS:
+        for name in app.config.get('PERMISSIONS'):
             p = Permission.query.filter_by(name=name).first()
             if not p:
                 p = Permission(name)
@@ -70,10 +59,11 @@ class Usergroup(db.Model):
 
     @staticmethod
     def initialize_usergroups():
-        for name in USER_GROUPS:
+        usergroups = app.config.get('USER_GROUPS')
+        for name in usergroups:
             p = Usergroup.query.filter_by(name=name).first()
             if not p:
-                p = Usergroup(name, USER_GROUPS[name])
+                p = Usergroup(name,usergroups[name])
                 db.session.add(p)
                 db.session.commit()
 
@@ -164,7 +154,7 @@ class User(db.Model):
         return bv_ids
         
     def restrict(self):
-        if self.count_warnings() >= RESTRICT_THRESHOLD:
+        if self.count_warnings() >= app.config.get('RESTRICT_THRESHOLD'):
             self.group_id = Usergroup.query.filter_by(name='restricted').first().group_id 
             self.commit()       
 
@@ -324,7 +314,7 @@ class Video(db.Model):
 
     def delete_status(self):
         score = self.net_votes() - 2 * Flag.query.filter_by(v_id=self.v_id).count()
-        if score < DELETE_THRESHOLD:
+        if score < app.config.get('DELETE_THRESHOLD'):
             # ban video
             banned_video = Banned_Video(self)
             banned_video.commit(insert=True)
@@ -519,7 +509,7 @@ class HallOfFame(db.Model):
             last = HallOfFame.retrieve_last()
             all_HoF = len(HallOfFame.sort_desc_and_retrieve_all())
 
-            if all_HoF < HALL_OF_FAME_LIMIT:
+            if all_HoF < app.config.get('HALL_OF_FAME_LIMIT'):
                 winner = HallOfFame(video, net_votes)
                 winner.commit(insert=True)
                 video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)

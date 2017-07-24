@@ -8,7 +8,7 @@ import json
 import StringIO
 import os
 
-DELETE_THRESHOLD = -4
+from app import app
 
 class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
     def test_downvote_ban(self):
@@ -17,7 +17,7 @@ class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
             v_id = videos_api.post_video_quick(self.client, auth=auth)
 
             # keep downvoting the video until the video has a score below threshold
-            for i in range(abs(DELETE_THRESHOLD - 1)):
+            for i in range(abs(app.config.get('DELETE_THRESHOLD')  - 1)):
                 response = videos_api.get_video(self.client,
                                                 v_id,
                                                 auth=auth
@@ -42,7 +42,7 @@ class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
             v_id = videos_api.post_video_quick(self.client, auth=auth)
 
             # keep flagging the video until the video has a score below threshold
-            for i in range(abs(DELETE_THRESHOLD) / 2 + 1):
+            for i in range(abs(app.config.get('DELETE_THRESHOLD') ) / 2 + 1):
                 response = videos_api.get_video(self.client,
                                                 v_id,
                                                 auth=auth
@@ -66,7 +66,7 @@ class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
             v_id = videos_api.post_video_quick(self.client, auth=auth)
 
             # keep downvoting the video until the video has a score below threshold
-            for i in range(abs(DELETE_THRESHOLD) / 3 + 1):
+            for i in range(abs(app.config.get('DELETE_THRESHOLD') ) / 3 + 1):
                 response = videos_api.get_video(self.client,
                                                 v_id,
                                                 auth=auth
@@ -92,7 +92,7 @@ class TestPatchBanVideos(GimTestCase.GimFreshDBTestCase):
             v_id = videos_api.post_video_quick(self.client, auth=auth)
 
             # keep downvoting the video until the video has a score below threshold
-            for i in range(abs(DELETE_THRESHOLD - 1)):
+            for i in range(abs(app.config.get('DELETE_THRESHOLD')  - 1)):
                 response = videos_api.get_video(self.client,
                                                 v_id,
                                                 auth=auth

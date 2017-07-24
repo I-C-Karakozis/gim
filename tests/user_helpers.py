@@ -2,7 +2,7 @@ import json
 
 import video_helpers as videos_api
 
-BAN_THRESHOLD = 3
+from app import app
 
 def get(client, url, **kwargs):
     return client.get(
@@ -64,6 +64,6 @@ def register_user_quick(client, email='goofy@goober.com'):
 
 def ban_user(client, auth):
     v_ids = []
-    for i in range(BAN_THRESHOLD):
+    for i in range(app.config.get('RESTRICT_THRESHOLD') ):
         v_ids.append(videos_api.post_video_quick(client, auth=auth, content=str(i)))
     videos_api.ban_videos(client, v_ids)

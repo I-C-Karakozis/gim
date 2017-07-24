@@ -204,3 +204,4 @@ class User(Resource):
         else:
             response = json_utils.gen_response(success=False, msg=str(user_id))
             return make_response(jsonify(response), 401)
+            
