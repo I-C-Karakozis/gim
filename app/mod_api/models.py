@@ -15,7 +15,7 @@ from app import video_client
 
 from sqlalchemy import and_, func, case, desc, not_
 
-permissions = db.Table('permissions',
+group_permissions = db.Table('group_permissions',
                         db.Column('permission_id', db.Integer, db.ForeignKey('permission.p_id')),
                         db.Column('group_id', db.Integer, db.ForeignKey('usergroup.group_id'))
                         )
@@ -36,14 +36,10 @@ class Permission(db.Model):
                 db.session.add(p)
                 db.session.commit()
 
-    @staticmethod
-    def get_permissions_on_user(u_id):
-        return Restriction.query.filter(and_(name==name, Restriction.users.any(User.u_id==u_id))).first()
-
 class Usergroup(db.Model):
     group_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(20), nullable=False, unique=True)
-    permissions = db.relationship('Permission', secondary=permissions, backref=db.backref('usergroups', lazy='dynamic'))
+    group_permissions = db.relationship('Permission', secondary=group_permissions, backref=db.backref('usergroups', lazy='dynamic'))
 
     def __init__(self, name, permissions):
         self.name = name
@@ -53,8 +49,8 @@ class Usergroup(db.Model):
     def add_permissions(self, permissions):
         for name in permissions:
             permission = Permission.query.filter_by(name=name).first()
-            if (permission is not None) and (permission not in self.permissions):
-                self.permissions.append(permission)
+            if (permission is not None) and (permission not in self.group_permissions):
+                self.group_permissions.append(permission)
         db.session.commit()
 
     @staticmethod
@@ -135,10 +131,7 @@ class User(db.Model):
     def check_user_permission(self, permission):
         usergroup = Usergroup.query.filter_by(group_id=self.group_id).first()
         permission = Permission.query.filter_by(name=permission).first()
-        if (usergroup is not None) and (permission is not None) and (permission in usergroup.permissions):
-            return True
-        else:
-            return False
+        return ((usergroup is not None) and (permission is not None) and (permission in usergroup.group_permissions))
 
     def count_warnings(self):
         return Banned_Video.query.filter_by(u_id=self.u_id).count()
@@ -312,21 +305,19 @@ class Video(db.Model):
     def net_votes(self):
         return sum((1 if vote.upvote else -1 for vote in self.votes))
 
-    def delete_status(self):
+    def ban_if_bad_score(self):
         score = self.net_votes() - 2 * Flag.query.filter_by(v_id=self.v_id).count()
         if score < app.config.get('DELETE_THRESHOLD'):
             # ban video
             banned_video = Banned_Video(self)
             banned_video.commit(insert=True)
-            self.delete()
-
+            
             # check owner needs to be banned
             user = User.get_user_by_id(self.u_id)
             user.restrict()
 
-            return True 
-        else:
-            return False
+            # remove video from feed access
+            self.delete()
 
     def commit(self, insert=False):
         if insert:

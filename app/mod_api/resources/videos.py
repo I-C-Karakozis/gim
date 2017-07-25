@@ -137,8 +137,7 @@ class Video(Resource):
                 {
                     'video_id': 5,
                     'upvotes': 9001,
-                    'downvotes': 666,
-                    'deleted': False
+                    'downvotes': 666
                 }
         }
         """
@@ -183,9 +182,13 @@ class Video(Resource):
             data = {
                 'video_id': video.v_id,
                 'upvotes': len([vt for vt in video.votes if vt.upvote]),
-                'downvotes': len([vt for vt in video.votes if not vt.upvote]),
-                'deleted': video.delete_status()
+                'downvotes': len([vt for vt in video.votes if not vt.upvote])
                 }
+            try:
+                video.ban_if_bad_score()
+            except:
+                pass
+
             response = json_utils.gen_response(success=True, data=data)
             return make_response(jsonify(response), 200)    
         else:
