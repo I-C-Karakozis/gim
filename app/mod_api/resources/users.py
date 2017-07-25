@@ -114,7 +114,8 @@ class User(Resource):
                 'email': user.email ,
                 'registered_on': user.registered_on ,
                 'last_active_on': user.last_active_on ,
-                'score': 22
+                'score': 22,
+                'total_warnings': 1
                 }
         }
         Returns 404 if no user with the given id was found.
@@ -128,15 +129,14 @@ class User(Resource):
                 return make_response(jsonify(response), 401)
 
             # users meta data
-            user = models.User.query.get_or_404(user_id)
-            user.commit()
-            
+            user = models.User.query.get_or_404(user_id)            
             data = {
                     'user_id': user_id ,
                     'email': user.email ,
                     'registered_on': user.registered_on ,
                     'last_active_on': user.last_active_on ,
-                    'score': int(user.get_score())
+                    'score': int(user.get_score()),
+                    'total_warnings': int(user.count_warnings())
                     }
             response = json_utils.gen_response(data=data)
             return make_response(jsonify(response), 200)
@@ -186,9 +186,7 @@ class User(Resource):
                 response = json_utils.gen_response(success=False, msg="Unauthorized access: You are not allowed to patch that user's information.")
                 return make_response(jsonify(response), 401)
 
-            user = models.User.query.get_or_404(user_id)
-            user.commit()
-          
+            user = models.User.query.get_or_404(user_id)         
             password = post_data.get('password')
 
             if not flask_bcrypt.check_password_hash(user.password_hash, password):
@@ -206,3 +204,4 @@ class User(Resource):
         else:
             response = json_utils.gen_response(success=False, msg=str(user_id))
             return make_response(jsonify(response), 401)
+            

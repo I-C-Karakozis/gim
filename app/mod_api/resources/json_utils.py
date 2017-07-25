@@ -29,3 +29,13 @@ def video_info(video, u_id):
         'downvotes': len([vt for vt in video.votes if not vt.upvote]),
         'user_vote': models.Vote.get_vote(u_id, video.v_id)
         }
+
+def banned_video_info(video):
+    return {
+        'user_id': video.u_id,
+        'uploaded_on': video.uploaded_on,
+        'tags': [t.name for t in video.tags],
+        'lat': video.lat,
+        'lon': video.lon,
+        'user_warned': video.user_warned
+        }

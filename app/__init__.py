@@ -5,12 +5,8 @@ from flask_bcrypt import Bcrypt
 # Define the WSGI application object
 app = Flask(__name__)
 
-# set maximum upload file size to 100 MB
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
-
 # Configurations
 app.config.from_object('config.TestingConfig')
-
 
 # Define the database object which is imported
 # by modules and controllers

@@ -5,6 +5,7 @@ from app.mod_api import models
 from app.mod_api.resources import auth
 from app.mod_api.resources import json_utils
 from app.mod_api.resources import validators
+from app.mod_api.resources.rest_tools import check_permissions as permit
 
 from werkzeug.datastructures import CombinedMultiDict
 from jsonschema import validate
@@ -118,6 +119,7 @@ class Video(Resource):
 
     @auth.require_auth_token
     @auth.require_empty_query_string
+    @permit.check_vote_permissions
     def patch(self, video_id):
         """Updates the votes of the video.
 
@@ -161,16 +163,18 @@ class Video(Resource):
         video = models.Video.get_video_by_id(video_id)
         if video:
             old_vote = models.Vote.query.filter_by(u_id = u_id, vid_id = video_id).first()            
+            # handle flags
             if post_data['flagged']:
                 new_flag = models.Flag(u_id, video_id)       
                 new_flag.commit(insert=True)
+            # handle repeat of existing vote
             elif old_vote: 
-                # handle repeat of existing vote
                 if old_vote.upvote == post_data['upvote']:
                     old_vote.delete()
                 else:
                     old_vote.upvote = post_data['upvote']
                     old_vote.commit()
+            # handle new vote
             else:   
                 new_vote = models.Vote(u_id, video_id, post_data['upvote'])       
                 new_vote.commit(insert = True)
@@ -180,6 +184,11 @@ class Video(Resource):
                 'upvotes': len([vt for vt in video.votes if vt.upvote]),
                 'downvotes': len([vt for vt in video.votes if not vt.upvote])
                 }
+            try:
+                video.ban_if_bad_score()
+            except:
+                pass
+
             response = json_utils.gen_response(success=True, data=data)
             return make_response(jsonify(response), 200)    
         else:
@@ -295,6 +304,7 @@ class Videos(Resource):
 
     @auth.require_auth_token
     @auth.require_empty_query_string
+    @permit.check_post_permissions
     def post(self):
         """Uploads a video to the database and returns a new video id. If the auth token is invalid, returns an error.
 

@@ -107,8 +107,6 @@ class HallOfFame(Resource):
         }
         """
         auth_token = auth.get_auth_token(request.headers.get('Authorization'))
-        u_id = models.User.decode_auth_token(auth_token)
-
         videos = models.HallOfFame.sort_desc_and_retrieve_all()
         video_infos = [hof_video_info(v) for v in videos]
         response = json_utils.gen_response(data={'videos': video_infos})
