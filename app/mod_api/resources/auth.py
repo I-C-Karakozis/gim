@@ -1,4 +1,4 @@
-from flask import request, make_response, jsonify, flash, render_template
+from flask import request, make_response, jsonify, flash, render_template, Response
 from flask_restful import Resource
 
 from app import app, db, flask_bcrypt
@@ -93,44 +93,18 @@ class Confirm(Resource):
         Response: Web view
             flash('You have confirmed your account. Thanks!', 'success')
         """
-        # try:
-        #     print 'hi'
-        #     email = email.confirm_token(token)
-        # except:
-        #     flash('The confirmation link is invalid or has expired.', 'danger')
-        #     return render_template('activated.html')
-        # user = models.User.query.filter_by(email=email).first_or_404()
-        # if user.confirmed:
-        #     flash('Account already confirmed. Please login.', 'success')
-        #     return render_template('activated.html')
-        # else:
-        #     print 1
-        #     user.confirm()
-        print 'hi'
-        return render_template('activated.html')
-
-    def post(self, token):
-        """Verifies the email and app acount of the user.
-
-        Request: GET /Confirm/<token>
-
-        Response: Web view
-            flash('You have confirmed your account. Thanks!', 'success')
-        """
         try:
-            print 'hi'
             email = email.confirm_token(token)
         except:
             flash('The confirmation link is invalid or has expired.', 'danger')
-            return render_template('activated.html')
+            return Response(render_template('activated.html'), mimetype='text/html')
         user = models.User.query.filter_by(email=email).first_or_404()
         if user.confirmed:
             flash('Account already confirmed. Please login.', 'success')
-            return render_template('activated.html')
+            return Response(render_template('activated.html'), mimetype='text\html')
         else:
-            print 1
             user.confirm()
-            return render_template('activated.html')
+        return Response(render_template('activated.html'), mimetype='text\html')
 
 class Login(Resource):
     """The Login endpoint is for logging in a user.
