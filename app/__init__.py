@@ -29,3 +29,8 @@ app.register_blueprint(api_module)
 # Build the database:
 # This will create the database file using SQLAlchemy
 db.create_all()
+
+# Initialize permissions and Usergroups
+from app.mod_api import models
+models.Permission.initialize_permissions()
+models.Usergroup.initialize_usergroups()
