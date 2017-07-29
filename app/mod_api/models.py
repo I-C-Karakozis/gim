@@ -98,8 +98,8 @@ class User(db.Model):
     def confirm(self):
         now = datetime.datetime.now()
         self.confirmed_on = now
-        confirmed = True
-        db.session.commit()
+        self.confirmed = True
+        self.commit()
 
     def delete(self):
         # delete videos owned by the user

@@ -81,6 +81,8 @@ class ProductionConfig(Config):
     CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
     SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
 
+    Testing = False
+
 class TestingConfig(Config):
     # enable testing to block emailing during unit testing
     TESTING = True

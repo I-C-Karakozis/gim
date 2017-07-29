@@ -7,7 +7,7 @@ from app.mod_api.resources.rest_tools import authentication, email, json_utils
 from app.mod_api.resources.rest_tools import check_permissions as permit
 
 from jsonschema import validate
-import string
+import string, traceback
 
 class Register(Resource):
     """ The Register endpoint is for creating a new user.
@@ -89,22 +89,23 @@ class Confirm(Resource):
         """Verifies the email and app acount of the user.
 
         Request: GET /Confirm/<token>
-
-        Response: Web view
-            flash('You have confirmed your account. Thanks!', 'success')
-        """
+        """        
         try:
-            email = email.confirm_token(token)
+            # confirm token
+            user_email = email.confirm_token(token)
+            user = models.User.query.filter_by(email=user_email).first()
+            if user is None:
+                return Response(render_template('invalid_link.html'), mimetype='text/html', status=401)
         except:
-            flash('The confirmation link is invalid or has expired.', 'danger')
-            return Response(render_template('activated.html'), mimetype='text/html')
-        user = models.User.query.filter_by(email=email).first_or_404()
+            traceback.print_exc()
+            return Response(render_template('invalid_link.html'), mimetype='text/html', status=401)
+        
+        # activate user account
         if user.confirmed:
-            flash('Account already confirmed. Please login.', 'success')
-            return Response(render_template('activated.html'), mimetype='text\html')
+            return Response(render_template('already_activated.html'), mimetype='text\html', status=202)
         else:
             user.confirm()
-            return Response(render_template('activated.html'), mimetype='text\html')
+            return Response(render_template('activated.html'), mimetype='text\html', status=200)
 
 class Login(Resource):
     """The Login endpoint is for logging in a user.
