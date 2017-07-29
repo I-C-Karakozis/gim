@@ -5,7 +5,6 @@ from app.mod_api import models
 from app.mod_api.resources.rest_tools import authentication, json_utils, validators
 
 from werkzeug.datastructures import CombinedMultiDict
-from jsonschema import validate
 
 def hof_video_info(video):
     return {
@@ -20,7 +19,7 @@ class HallOfFameFiles(Resource):
     This endpoint supports the following http requests:
     get -- returns the file associated with the given video id; authentication token required
 
-    All requests require the client to pass the video id of the target video in the Hall of Fame.
+    All requests require the client to pass the video id of the target video isn the Hall of Fame.
     """
 
     @authentication.require_auth_token
@@ -106,10 +105,10 @@ class HallOfFame(Resource):
         }
         """
         auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
-        u_id = models.User.decode_auth_token(auth_token)
 
         videos = models.HallOfFame.sort_desc_and_retrieve_all()
         video_infos = [hof_video_info(v) for v in videos]
         response = json_utils.gen_response(data={'videos': video_infos})
+        
         return make_response(jsonify(response), 200)
 

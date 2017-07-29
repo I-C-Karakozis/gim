@@ -13,14 +13,60 @@ import os
 from app import app, db, flask_bcrypt
 from app import video_client
 
-from sqlalchemy import and_, func, case, desc
+from sqlalchemy import and_, func, case, desc, not_
+
+group_permissions = db.Table('group_permissions',
+                        db.Column('permission_id', db.Integer, db.ForeignKey('permission.p_id')),
+                        db.Column('group_id', db.Integer, db.ForeignKey('usergroup.group_id'))
+                        )
+
+class Permission(db.Model):
+    p_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(20), nullable=False, unique=True)
+
+    def __init__(self, name):
+        self.name = name
+
+    @staticmethod
+    def initialize_permissions():
+        for name in app.config.get('PERMISSIONS'):
+            p = Permission.query.filter_by(name=name).first()
+            if not p:
+                p = Permission(name)
+                db.session.add(p)
+                db.session.commit()
+
+class Usergroup(db.Model):
+    group_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(20), nullable=False, unique=True)
+    group_permissions = db.relationship('Permission', secondary=group_permissions, backref=db.backref('usergroups', lazy='dynamic'))
+
+    def __init__(self, name, permissions):
+        self.name = name
+        self.add_permissions(permissions)
 
 
-HALL_OF_FAME_LIMIT = 10
-FRAMES_PER_SECOND = 23
+    def add_permissions(self, permissions):
+        for name in permissions:
+            permission = Permission.query.filter_by(name=name).first()
+            if (permission is not None) and (permission not in self.group_permissions):
+                self.group_permissions.append(permission)
+        db.session.commit()
+
+    @staticmethod
+    def initialize_usergroups():
+        usergroups = app.config.get('USER_GROUPS')
+        for name in usergroups:
+            p = Usergroup.query.filter_by(name=name).first()
+            if not p:
+                p = Usergroup(name,usergroups[name])
+                db.session.add(p)
+                db.session.commit()
+
 
 class User(db.Model):
     u_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('usergroup.group_id'))
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     video = db.relationship('Video', backref='user', lazy='dynamic')
@@ -39,12 +85,8 @@ class User(db.Model):
         self.last_active_on = now
         self.stored_score = 0
 
-    def get_score(self):
-        votes = Vote.query.filter_by(u_id = self.u_id).count()
-        video_scores = db.session.query(func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).label('net_votes')).select_from(Video).join(Vote).filter(Video.u_id == self.u_id)
-        video_score = db.session.query(func.sum(video_scores.subquery().columns.net_votes)).scalar()
-        video_score = 0 if not video_score else video_score
-        return votes + video_score + self.stored_score
+        usergroup = Usergroup.query.filter_by(name='member').first()
+        self.group_id = usergroup.group_id 
 
     def commit(self, insert = False):
         now = datetime.datetime.now()
@@ -87,10 +129,39 @@ class User(db.Model):
             algorithm='HS256'
             )
 
-    def commit(self, insert=False):
-        if insert:
-            db.session.add(self)
-        db.session.commit()
+    def get_score(self):
+        votes = Vote.query.filter_by(u_id = self.u_id).count()
+        video_scores = db.session.query(func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).label('net_votes')).select_from(Video).join(Vote).filter(Video.u_id == self.u_id)
+        video_score = db.session.query(func.sum(video_scores.subquery().columns.net_votes)).scalar()
+        video_score = 0 if not video_score else video_score
+        return votes + video_score + self.stored_score
+
+    def check_user_permission(self, permission):
+        usergroup = Usergroup.query.filter_by(group_id=self.group_id).first()
+        permission = Permission.query.filter_by(name=permission).first()
+        return ((usergroup is not None) and (permission is not None) and (permission in usergroup.group_permissions))
+
+    def count_warnings(self):
+        return Banned_Video.query.filter_by(u_id=self.u_id).count()
+
+    def get_warning_ids(self):
+        banned_videos = Banned_Video.query.filter_by(u_id=self.u_id, user_warned=False)
+        bv_ids = []
+        for video in banned_videos:
+            bv_ids.append(video.bv_id)
+            video.user_warned = True
+            video.commit()
+
+        return bv_ids
+        
+    def restrict(self):
+        if self.count_warnings() >= app.config.get('RESTRICT_THRESHOLD'):
+            self.group_id = Usergroup.query.filter_by(name='restricted').first().group_id 
+            self.commit()       
+
+    @staticmethod
+    def get_user_by_id(_id):
+        return User.query.filter_by(u_id=_id).first()
 
     @staticmethod
     def decode_auth_token(auth_token):
@@ -114,6 +185,11 @@ tags = db.Table('tags',
                 db.Column('video_id', db.Integer, db.ForeignKey('video.v_id'))
                 )
 
+banned_tags = db.Table('banned_tags',
+                        db.Column('tag_id', db.Integer, db.ForeignKey('tag.tag_id')),
+                        db.Column('banned_video_id', db.Integer, db.ForeignKey('banned__video.bv_id'))
+                        )
+
 class Tag(db.Model):
     tag_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(20), nullable=False, unique=True)
@@ -135,13 +211,16 @@ class Vote(db.Model):
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
     vid_id = db.Column(db.Integer, db.ForeignKey('video.v_id'))
     upvote = db.Column(db.Boolean, nullable=False)
+    voted_on = db.Column(db.DateTime, nullable=False)
 
     def __init__(self, u_id, vid_id, upvote):
         self.u_id = u_id
         self.vid_id = vid_id
         self.upvote = upvote
+        self.voted_on = datetime.datetime.now()
 
     def commit(self, insert=False):
+        self.voted_on = datetime.datetime.now()
         if insert:
             db.session.add(self)
         db.session.commit()
@@ -162,6 +241,24 @@ class Vote(db.Model):
         else:
             return 0
 
+class Flag(db.Model):
+    flag_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
+    v_id = db.Column(db.Integer, db.ForeignKey('video.v_id'))
+
+    def __init__(self, u_id, v_id):
+        self.u_id = u_id
+        self.v_id = v_id
+
+    def commit(self, insert=False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
 class Video(db.Model):
     v_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
@@ -171,6 +268,7 @@ class Video(db.Model):
     lon = db.Column(db.Float(precision=8), nullable=False)
     tags = db.relationship('Tag', secondary=tags, backref=db.backref('videos', lazy='dynamic'))
     votes = db.relationship('Vote', backref='video', lazy='dynamic')
+    flags = db.relationship('Flag', backref='video', lazy='dynamic')
     filepath = db.Column(db.String(84), nullable=False)
 
     def __init__(self, video, u_id, lat, lon):
@@ -215,6 +313,20 @@ class Video(db.Model):
     def net_votes(self):
         return sum((1 if vote.upvote else -1 for vote in self.votes))
 
+    def ban_if_bad_score(self):
+        score = self.net_votes() - 2 * Flag.query.filter_by(v_id=self.v_id).count()
+        if score < app.config.get('DELETE_THRESHOLD'):
+            # ban video
+            banned_video = Banned_Video(self)
+            banned_video.commit(insert=True)
+            
+            # check owner needs to be banned
+            user = User.get_user_by_id(self.u_id)
+            user.restrict()
+
+            # remove video from feed access
+            self.delete()
+
     def commit(self, insert=False):
         if insert:
             db.session.add(self)
@@ -237,6 +349,11 @@ class Video(db.Model):
         for vote in expired_votes:
             vote.delete()
 
+        # delete flags associated with video
+        expired_flags = Flag.query.filter_by(v_id = self.v_id)
+        for flag in expired_flags:
+            flag.delete()
+
         # delete the video
         video_client.delete_videos([self.filepath])
         db.session.delete(self)
@@ -250,42 +367,53 @@ class Video(db.Model):
         return Video.query.filter_by(v_id=_id).first()
 
     @staticmethod
-    def get_videos_by_user_id(u_id):
-        videos = Video.query.filter_by(u_id=u_id) 
+    def get_videos_by_user_id(u_id, limit=5, offset=0, sort_by='recent'):           
+        videos = Video.query.filter_by(u_id=u_id)
 
+        # order the videos; default to sort_by recency        
         order = Video.uploaded_on.desc()
-        videos = videos.order_by(order)
+        if sort_by == 'popular':
+            videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()  
 
-        return videos.all()  
+        return Video.order_limit_offset_videos(videos, limit, offset, order) 
 
     @staticmethod
-    def get_liked_videos_by_user_id(u_id):
-        videos = Video.query.join(Video.votes).filter(and_(Vote.u_id == u_id, Vote.upvote))
+    def get_liked_videos_by_user_id(u_id, limit=5, offset=0, sort_by='recent'):        
+        # order the videos; default to sort_by recency 
+        if sort_by == 'popular':
+            videos = Video.query.filter(Video.votes.any(and_(Vote.u_id==u_id, Vote.upvote==True)))
+            videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
+            order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
+        else:
+            videos = Video.query.join(Vote).filter((and_(Vote.u_id==u_id, Vote.upvote==True)))       
+            order = Vote.voted_on.desc()
 
-        order = Video.uploaded_on.desc()
-        videos = videos.order_by(order)
-
-        return videos.all()       
+        return Video.order_limit_offset_videos(videos, limit, offset, order)      
 
     @staticmethod
-    def search(lat, lon, tags=[], limit=5, offset=0, sort_by='popular'):    
-        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
+    def search(lat, lon, u_id, tags=[], limit=5, offset=0, sort_by='popular'):            
+        # fetch videos based on tags, flags and geolocation
         tag_filter = and_()
         tags = tags if tags else []
         for tag in tags:
             tag_filter =  and_(tag_filter, Video.tags.any(Tag.name == tag))
+        lat_max, lat_min, lon_max, lon_min = boxUser(lat, lon)
         geo_filter = and_(Video.lat < lat_max, Video.lat > lat_min, Video.lon < lon_max, Video.lon > lon_min)
-        videos = Video.query.join(Tag, Video.tags).filter(and_(tag_filter, geo_filter)) if tags else Video.query.filter(geo_filter)
-
-        # order the videos        
-        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)
-
-        # default to sort_by popularity
-        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()
-    
+        flagged_filter = not_(Video.flags.any(Flag.u_id==u_id))
+        videos = Video.query.join(Tag, Video.tags).filter(and_(and_(tag_filter, geo_filter), flagged_filter)) if tags else Video.query.filter(and_(flagged_filter, geo_filter))
+        
+        # order the videos; default to sort_by popularity        
+        videos = videos.outerjoin(Vote, Video.votes).group_by(Video.v_id)      
+        order = func.sum(case(value=Vote.upvote, whens={1:1, 0:- 1}, else_=0)).desc()    
         if sort_by == 'recent':
             order = Video.uploaded_on.desc()
 
+        return Video.order_limit_offset_videos(videos, limit, offset, order)
+
+    @staticmethod
+    def order_limit_offset_videos(videos, limit, offset, order):
+        # order videos
         videos = videos.order_by(order)
 
         # limit videos
@@ -296,23 +424,44 @@ class Video(db.Model):
 
         return videos.all()
 
-class BlacklistToken(db.Model):
-    t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    token = db.Column(db.String(500), unique=True, nullable=False)
-    blacklisted_on = db.Column(db.DateTime, nullable=False)
+class Banned_Video(db.Model):
+    bv_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'))
+    uploaded_on = db.Column(db.DateTime, nullable=False)
+    lat = db.Column(db.Float(precision=8), nullable=False)
+    lon = db.Column(db.Float(precision=8), nullable=False)
+    tags = db.relationship('Tag', secondary=banned_tags, backref=db.backref('banned_videos', lazy='dynamic'))
+    filepath = db.Column(db.String(84), nullable=False)
+    user_warned = db.Column(db.Boolean, nullable=False, default=False)
 
-    def __init__(self, token):
-        self.token = token
-        self.blacklisted_on = datetime.datetime.now()
+    def __init__(self, video):
+        self.u_id = video.u_id
+        self.uploaded_on = video.uploaded_on
+        self.lat = video.lat
+        self.lon = video.lon
+
+        # handle video file
+        self.filepath = video.filepath 
+        video_client.upload_banned_video(self.filepath, video.retrieve())   
+
+        # pass tags to banned video
+        for tag in video.tags:
+            t = Tag.get_or_create_tag(tag.name)
+            if t not in self.tags:
+                self.tags.append(t)
+
+    def commit(self, insert=False):
+        if insert:
+            db.session.add(self)
+        db.session.commit()
+
+    def retrieve(self):
+        return video_client.retrieve_banned_video(self.filepath)
+
 
     @staticmethod
-    def check_blacklist(auth_token):
-        res = BlacklistToken.query.filter_by(token=str(auth_token)).first()
-        return True if res else False
-
-    def __repr__(self):
-        return '<id: token: {}'.format(self.token)
-
+    def get_banned_video_by_id(_id):
+        return Banned_Video.query.filter_by(bv_id=_id).first()
 
 class HallOfFame(db.Model):
     hof_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -359,7 +508,7 @@ class HallOfFame(db.Model):
             last = HallOfFame.retrieve_last()
             all_HoF = len(HallOfFame.sort_desc_and_retrieve_all())
 
-            if all_HoF < HALL_OF_FAME_LIMIT:
+            if all_HoF < app.config.get('HALL_OF_FAME_LIMIT'):
                 winner = HallOfFame(video, net_votes)
                 winner.commit(insert=True)
                 video_client.upload_video(winner.filepath, video.retrieve(), is_hof=True)
@@ -375,8 +524,7 @@ class HallOfFame(db.Model):
             # else:
                 # video.delete_thumbnail()
 
-            video.delete()        
-
+            video.delete()
 
     @staticmethod
     def get_video_by_id(_id):
@@ -396,6 +544,22 @@ class HallOfFame(db.Model):
         hof = hof.order_by(order)
         return hof.first()
 
+class BlacklistToken(db.Model):
+    t_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    token = db.Column(db.String(500), unique=True, nullable=False)
+    blacklisted_on = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, token):
+        self.token = token
+        self.blacklisted_on = datetime.datetime.now()
+
+    @staticmethod
+    def check_blacklist(auth_token):
+        res = BlacklistToken.query.filter_by(token=str(auth_token)).first()
+        return True if res else False
+
+    def __repr__(self):
+        return '<id: token: {}'.format(self.token)
 
 # implemented using equirectangular approximation; accurate for small distances
 def boxUser(lat, lon):

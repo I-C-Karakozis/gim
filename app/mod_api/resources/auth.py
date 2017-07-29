@@ -4,11 +4,11 @@ from flask_restful import Resource
 from app import app, db, flask_bcrypt
 from app.mod_api import models
 from app.mod_api.resources.rest_tools import authentication, email, json_utils 
+from app.mod_api.resources.rest_tools import check_permissions as permit
 
 from jsonschema import validate
 import string
-import traceback
-  
+
 class Register(Resource):
     """ The Register endpoint is for creating a new user.
 
@@ -104,7 +104,7 @@ class Confirm(Resource):
             return Response(render_template('activated.html'), mimetype='text\html')
         else:
             user.confirm()
-        return Response(render_template('activated.html'), mimetype='text\html')
+            return Response(render_template('activated.html'), mimetype='text\html')
 
 class Login(Resource):
     """The Login endpoint is for logging in a user.
@@ -180,20 +180,25 @@ class Status(Resource):
         {
             'status': 'success',
             'data': {
-                'user_id': 5
+                'user_id': 5,
+                'warning_ids': [1, 13] (empty array indicates no warning should be issued),
+                'vote_restricted': True,
+                'post_restricted': True 
             }
         }
         """
         auth_token = authentication.get_auth_token(request.headers.get('Authorization'))
-
         u_id = models.User.decode_auth_token(auth_token)
-        if not isinstance(u_id, str):
-            user = models.User.query.filter_by(u_id=u_id).first()
-            response = json_utils.gen_response(data={'user_id': user.u_id})
-            return make_response(jsonify(response), 200)
-        else:
-            response = json_utils.gen_response(success=False, msg=u_id)
-            return make_response(jsonify(response), 401)
+        user = models.User.query.filter_by(u_id=u_id).first()
+
+        vote_restriction = not user.check_user_permission('vote')
+        post_restriction = not user.check_user_permission('post')
+
+        response = json_utils.gen_response(data={'user_id': user.u_id,
+                                                 'warning_ids': user.get_warning_ids(),
+                                                 'vote_restricted': vote_restriction,
+                                                 'post_restricted': post_restriction })
+        return make_response(jsonify(response), 200)
 
                 
 class Logout(Resource):

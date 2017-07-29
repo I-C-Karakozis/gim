@@ -9,7 +9,9 @@ from pyftpdlib.servers import FTPServer
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 VIDEO_STORE = os.path.join(BASE_DIR, 'videos')
 HOF_STORE = os.path.join(BASE_DIR, 'videos/hof')
+BV_STORE = os.path.join(BASE_DIR, 'videos/banned')
 THUMBNAIL_STORE = os.path.join(BASE_DIR, 'videos/thumbnails')
+
 
 class VideoServer:
     def __init__(self, host, port):
@@ -29,6 +31,11 @@ class VideoServer:
         authorizer.add_user('hof_deleter', 'password', HOF_STORE, perm='d')
         # write-only user for posting hof videos
         authorizer.add_user('hof_poster', 'password', HOF_STORE, perm='w')
+
+        # read-only user for searching banned videos
+        authorizer.add_user('banned_videos_searcher', 'password', BV_STORE, perm='r') 
+        # write-only user for posting banned videos
+        authorizer.add_user('banned_videos_poster', 'password', BV_STORE, perm='w')
 
         # read-only user for searching thumbnails
         authorizer.add_user('thumb_searcher', 'password', THUMBNAIL_STORE, perm='r') 

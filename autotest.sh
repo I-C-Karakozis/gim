@@ -22,3 +22,4 @@ kill -KILL $FTP_PID &> /dev/null
 rm ftp/videos/* &> /dev/null
 rm ftp/videos/hof/* &> /dev/null
 rm ftp/videos/thumbnails/* &> /dev/null
+rm ftp/videos/banned/* &> /dev/null

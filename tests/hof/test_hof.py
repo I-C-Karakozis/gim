@@ -5,10 +5,10 @@ from tests import hof_helpers as hof_api
 from tests import cron_helpers as cron
 from tests import http_helpers as http
 
+from app import app
+
 import json
 import StringIO
-
-CAP = 10
 
 class TestHallOfFame(GimTestCase.GimFreshDBTestCase):    
     def test_get_hof_video(self):
@@ -179,8 +179,7 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
 
     def test_get_sorted_multiple_hof_videos(self):
         with self.client:
-            # CAP is the current cap
-            desc_scores, auths = cron.simulate_hof(self.client, CAP)
+            desc_scores, auths = cron.simulate_hof(self.client, app.config.get('HALL_OF_FAME_LIMIT'))
             desc_scores.sort(reverse=True)
             cron.delete_expired()
 
@@ -201,8 +200,7 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
 
     def test_updating_hof(self):
         with self.client:
-            # CAP is the current cap
-            desc_scores, auths = cron.simulate_hof(self.client, CAP)
+            desc_scores, auths = cron.simulate_hof(self.client, app.config.get('HALL_OF_FAME_LIMIT'))
             desc_scores.sort(reverse=True)
             cron.delete_expired()
 
@@ -228,12 +226,12 @@ class TestHallOfFame(GimTestCase.GimFreshDBTestCase):
             videos = data['data']['videos']
             hof_id = videos[0]['video_id']
 
-            assert len(videos) == CAP
-            assert videos[0]['score'] == CAP + 1
+            assert len(videos) == app.config.get('HALL_OF_FAME_LIMIT')
+            assert videos[0]['score'] == app.config.get('HALL_OF_FAME_LIMIT') + 1
 
             # check scores and sorted order
             del desc_scores[len(desc_scores) - 1]
-            desc_scores.append(CAP + 1)
+            desc_scores.append(app.config.get('HALL_OF_FAME_LIMIT') + 1)
             desc_scores.sort(reverse=True)
             for vid, score in zip(videos, desc_scores):
                 assert vid['score'] == score

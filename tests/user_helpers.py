@@ -1,5 +1,10 @@
 import json
 
+import video_helpers as videos_api
+
+from app import app
+from app.mod_api import models
+
 def get(client, url, **kwargs):
     return client.get(
         url,
@@ -56,4 +61,12 @@ def register_user_quick(client, email='goofy@goober.com'):
     auth_token = data['auth_token']
     auth = 'Bearer ' + auth_token
     u_id = data['data']['user_id']
+    user = models.User.get_user_by_id(u_id)
+    user.confirm()
     return auth, u_id
+
+def ban_user(client, auth):
+    v_ids = []
+    for i in range(app.config.get('RESTRICT_THRESHOLD') ):
+        v_ids.append(videos_api.post_video_quick(client, auth=auth, content=str(i)))
+    videos_api.ban_videos(client, v_ids)

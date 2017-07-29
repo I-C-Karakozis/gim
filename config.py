@@ -1,6 +1,8 @@
 import os
 
 class Config(object):
+    ## Main Configurations ##
+
     # Statement for enabling the development environment
     DEBUG = True
     TESTING = False
@@ -37,6 +39,12 @@ class Config(object):
     # Minimum password length
     MIN_PASS_LEN = 6
 
+    # set maximum upload file size to 100 MB
+    MAX_CONTENT_LENGTH = 100 * 1024 * 1024
+
+
+    ## Mail Configurations ##
+
     # main config
     WTF_CSRF_ENABLED = True
     DEBUG_TB_ENABLED = False
@@ -55,11 +63,23 @@ class Config(object):
     # mail accounts
     MAIL_DEFAULT_SENDER = 'gim04172017@gmail.com'
 
-# class ProductionConfig(Config):
-#     DEBUG = False
-#     SQLALCHEMY_DATABASE_URI = os.environ['PURVIEW_MYSQL_URI']
-#     CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
-#     SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
+
+    ## Global Variables ##
+
+    HALL_OF_FAME_LIMIT = 10
+    DELETE_THRESHOLD = -4
+    RESTRICT_THRESHOLD = 3
+    PERMISSIONS = ['post', 'vote', 'access']
+    USER_GROUPS = {
+                    'member': ['post', 'vote', 'access'],
+                    'restricted': ['access'],
+                    'banned': []
+                   }
+
+class ProductionConfig(Config):
+    SQLALCHEMY_DATABASE_URI = os.environ['PURVIEW_MYSQL_URI']
+    CSRF_SESSION_KEY = os.environ['PURVIEW_CSRF_SESSION_KEY']
+    SECRET_KEY = os.environ['PURVIEW_SECRET_KEY']
 
 class TestingConfig(Config):
     # enable testing to block emailing during unit testing
