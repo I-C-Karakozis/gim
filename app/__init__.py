@@ -1,12 +1,19 @@
-from flask import Flask, render_template
+from flask import Flask 
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from flask_mail import Mail
 
 # Define the WSGI application object
 app = Flask(__name__)
 
 # Configurations
 app.config.from_object('config.TestingConfig')
+
+# set maximum upload file size to 100 MB
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+
+# Define mail
+mail = Mail(app)
 
 # Define the database object which is imported
 # by modules and controllers
@@ -34,3 +41,4 @@ db.create_all()
 from app.mod_api import models
 models.Permission.initialize_permissions()
 models.Usergroup.initialize_usergroups()
+

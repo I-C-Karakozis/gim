@@ -3,8 +3,7 @@ from flask_restful import Resource, reqparse
 
 from app import app, db, flask_bcrypt
 from app.mod_api import models
-from app.mod_api.resources import auth
-from app.mod_api.resources import json_utils
+from app.mod_api.resources.rest_tools import authentication, json_utils, validators
 
 from jsonschema import validate
 
@@ -28,8 +27,8 @@ class User(Resource):
     All requests require the client to pass the user id of the target user.
     """
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def patch(self, user_id): 
         """Given correct current password and a new password, it updates the password of the user with the id corresponding to the authentication token presented in the Authorizaton header to the new password. If the token is invalid, returns an error.
 
@@ -64,7 +63,7 @@ class User(Resource):
             response = json_utils.gen_response(success=False, msg='Bad JSON: password and new_password required.')
             return make_response(jsonify(response), 400)
 
-        auth_token = auth.get_auth_token(request.headers.get('Authorization'))        
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization'))        
         token_u_id = models.User.decode_auth_token(auth_token) 
 
         if not isinstance(token_u_id, str): 
@@ -76,7 +75,7 @@ class User(Resource):
             passed_old_password = post_data.get('password')
             passed_new_password = post_data.get('new_password')
 
-            if not auth.meets_password_requirements(passed_new_password):
+            if not authentication.meets_password_requirements(passed_new_password):
                 response = json_utils.gen_response(success=False, msg="Password must be at least " + app.config.get('MIN_PASS_LEN') + " characters long and must contain 1 number, 1 letter, and 1 punctuation mark.")
                 return make_response(jsonify(response), 400)
 
@@ -99,8 +98,8 @@ class User(Resource):
             return make_response(jsonify(response), 401)
 
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def get(self, user_id):
         """Returns all information of the user with the id corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
         
@@ -120,7 +119,7 @@ class User(Resource):
         }
         Returns 404 if no user with the given id was found.
         """
-        auth_token = auth.get_auth_token(request.headers.get('Authorization')) 
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization')) 
         token_u_id = models.User.decode_auth_token(auth_token) 
 
         if not isinstance(token_u_id, str): 
@@ -145,8 +144,8 @@ class User(Resource):
             return make_response(jsonify(response), 401)
 
 
-    @auth.require_auth_token
-    @auth.require_empty_query_string
+    @authentication.require_auth_token
+    @authentication.require_empty_query_string
     def delete(self, user_id):
         """Deletes user with the id corresponding to the authentication token presented in the Authorizaton header. If the token is invalid, returns an error.
         
@@ -178,7 +177,7 @@ class User(Resource):
             response = json_utils.gen_response(success=False, msg='Bad JSON: password required.')
             return make_response(jsonify(response), 400)
 
-        auth_token = auth.get_auth_token(request.headers.get('Authorization')) 
+        auth_token = authentication.get_auth_token(request.headers.get('Authorization')) 
         token_u_id = models.User.decode_auth_token(auth_token) 
 
         if not isinstance(token_u_id, str): 

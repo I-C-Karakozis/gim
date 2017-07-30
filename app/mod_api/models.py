@@ -74,6 +74,8 @@ class User(db.Model):
     registered_on = db.Column(db.DateTime, nullable=False)
     last_active_on = db.Column(db.DateTime, nullable=False)
     stored_score = db.Column(db.Integer, nullable=False)
+    confirmed = db.Column(db.Boolean, nullable=False, default=False)
+    confirmed_on = db.Column(db.DateTime, nullable=True)
 
     def __init__(self, email, password):
         self.email = email
@@ -91,6 +93,26 @@ class User(db.Model):
         self.last_active_on = now
         if insert:
             db.session.add(self)
+        db.session.commit()
+
+    def confirm(self):
+        now = datetime.datetime.now()
+        self.confirmed_on = now
+        self.confirmed = True
+        self.commit()
+
+    def delete(self):
+        # delete videos owned by the user
+        videos = Video.query.filter_by(u_id=self.u_id)
+        for video in videos:
+            video.delete()
+
+        # delete hall of fame videos produced by the user
+        hof_videos = HallOfFame.query.filter_by(u_id=self.u_id)
+        for video in hof_videos:
+            video.delete()
+
+        db.session.delete(self)
         db.session.commit()
 
     def encode_auth_token(self):
@@ -113,20 +135,6 @@ class User(db.Model):
         video_score = db.session.query(func.sum(video_scores.subquery().columns.net_votes)).scalar()
         video_score = 0 if not video_score else video_score
         return votes + video_score + self.stored_score
-
-    def delete(self):
-        # delete videos owned by the user
-        videos = Video.query.filter_by(u_id=self.u_id)
-        for video in videos:
-            video.delete()
-
-        # delete hall of fame videos produced by the user
-        hof_videos = HallOfFame.query.filter_by(u_id=self.u_id)
-        for video in hof_videos:
-            video.delete()
-
-        db.session.delete(self)
-        db.session.commit()
 
     def check_user_permission(self, permission):
         usergroup = Usergroup.query.filter_by(group_id=self.group_id).first()
