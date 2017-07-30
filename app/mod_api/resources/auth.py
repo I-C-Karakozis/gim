@@ -91,13 +91,15 @@ class Confirm(Resource):
         try:
             # confirm token
             user_email = email.confirm_token(token)
-            user = models.User.query.filter_by(email=user_email).first()
-            if user is None:
-                return Response(render_template('invalid_link.html'), mimetype='text/html', status=401)
         except:
             # traceback.print_exc()
             return Response(render_template('invalid_link.html'), mimetype='text/html', status=401)
         
+        # check if a registered account with this email exists
+        user = models.User.query.filter_by(email=user_email).first()
+        if user is None:
+            return Response(render_template('invalid_link.html'), mimetype='text/html', status=401)
+       
         # activate user account
         if user.confirmed:
             return Response(render_template('already_activated.html'), mimetype='text\html', status=202)
