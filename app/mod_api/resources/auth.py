@@ -83,8 +83,6 @@ class Confirm(Resource):
     The Confirm endpoint supports the following http requests:
     patch -- obtain the email confirmation token of a user; verify the user account
     """
-
-    # @authentication.require_empty_query_string
     def get(self, token):
         """Verifies the email and app acount of the user.
 
@@ -97,7 +95,7 @@ class Confirm(Resource):
             if user is None:
                 return Response(render_template('invalid_link.html'), mimetype='text/html', status=401)
         except:
-            traceback.print_exc()
+            # traceback.print_exc()
             return Response(render_template('invalid_link.html'), mimetype='text/html', status=401)
         
         # activate user account
@@ -143,6 +141,11 @@ class Login(Resource):
         try:
             user = models.User.query.filter_by(email=post_data.get('email')).first()
             if user and flask_bcrypt.check_password_hash(user.password_hash, post_data.get('password')):
+                # block user if account not activated
+                if not user.confirmed:
+                    response = json_utils.gen_response(success=False, msg='Your account has not been activated yet. Please visit your email to activate your Blink account.')
+                    return make_response(jsonify(response), 401)
+
                 auth_token = user.encode_auth_token()
                 if auth_token:
                     response = {

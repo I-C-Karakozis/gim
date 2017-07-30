@@ -49,18 +49,20 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             email = 'goofy@goober.com'
             response = api.register_user(self.client,
                                          email=email,
-                                         password='password1!'
+                                         password='password1!',
+                                         confirm=False
                                          )
             response = api.register_user(self.client,
                                          email=email,
-                                         password='password2!'
+                                         password='password2!',
+                                         confirm=False
                                          )
             data = json.loads(response.data.decode())
             assert data['status'] == 'failed'
             assert response.content_type == 'application/json'
             assert response.status_code == http.ACCEPTED      
 
-    def test_registered_user_login(self):
+    def test_confirmed_user_login(self):
         with self.client:
             response_register = api.register_user(self.client,
                                                   email='goofy@goober.com',
@@ -81,6 +83,22 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert response_login.content_type == 'application/json'
             assert response_login.status_code == http.OK
 
+    def test_unconfirmed_user_login(self):
+        with self.client:
+            response_register = api.register_user(self.client,
+                                                  email='goofy@goober.com',
+                                                  password='password1!',
+                                                  confirm=False
+                                                  )
+            data_register = json.loads(response_register.data.decode())
+            assert response_register.status_code == http.CREATED
+
+            response_login = api.login_user(self.client,
+                                            email='goofy@goober.com',
+                                            password='password1!'
+                                            )
+            assert response_login.status_code == http.UNAUTH
+
     def test_non_registered_user_login(self):
         with self.client:
             response = api.login_user(self.client,
@@ -91,6 +109,11 @@ class TestAuth(GimTestCase.GimFreshDBTestCase):
             assert data['status'] == 'failed'
             assert response.content_type == 'application/json'
             assert response.status_code == http.NOT_FOUND
+
+    def test_bad_confirm_token(self):
+        with self.client:
+            response = api.get(self.client, '/api/Auth/Confirm/asdfghjkl')
+            assert response.status_code == http.UNAUTH
 
     def test_user_status(self):
         with self.client:
