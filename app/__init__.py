@@ -7,7 +7,7 @@ from flask_mail import Mail
 app = Flask(__name__)
 
 # Configurations
-app.config.from_object('config.TestingConfig')
+app.config.from_object('config.ProductionConfig')
 
 # set maximum upload file size to 100 MB
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
