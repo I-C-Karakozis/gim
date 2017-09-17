@@ -58,7 +58,7 @@ class Config(object):
 
     # gmail authentication
     MAIL_USERNAME = 'gim04172017@gmail.com' # os.environ['PURVIEW_MAIL_USERNAME']
-    MAIL_PASSWORD = 'gordon_ioannis_matthew-333' # os.environ['PURVIEW_MAIL_PASSWORD']
+    MAIL_PASSWORD = '*********************' # os.environ['PURVIEW_MAIL_PASSWORD']
 
     # mail accounts
     MAIL_DEFAULT_SENDER = 'gim04172017@gmail.com'
